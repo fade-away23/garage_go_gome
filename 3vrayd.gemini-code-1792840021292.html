@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GARAGE GO! — Telegram Mini App</title>
+  <!-- Официальный Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@600;700;900&display=swap');
+
+    body {
+      font-family: 'Rubik', sans-serif;
+      background: #121521;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+      overflow: hidden;
+    }
+
+    .glass-capsule {
+      background: linear-gradient(180deg, rgba(45, 55, 85, 0.9) 0%, rgba(20, 25, 40, 0.95) 100%);
+      border: 2px solid rgba(255, 215, 0, 0.45);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.55), inset 0 2px 4px rgba(255,255,255,0.25);
+    }
+
+    .garage-bg {
+      background: radial-gradient(circle at 50% 45%, #4a3830 0%, #261d1a 55%, #141115 100%);
+      position: relative;
+    }
+
+    .car-pin {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.6), inset 0 3px 5px rgba(255,255,255,0.6);
+      animation: float-pin 2s ease-in-out infinite;
+      transition: transform 0.15s;
+      z-index: 20;
+    }
+    .car-pin:active { transform: scale(0.9); }
+
+    @keyframes float-pin {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-6px) scale(1.06); }
+    }
+
+    .btn-play-3d {
+      background: linear-gradient(180deg, #ff9900 0%, #ff5500 50%, #cc3300 100%);
+      border: 3px solid #ffe680;
+      box-shadow: 0 7px 0 #801b00, 0 12px 20px rgba(0,0,0,0.65), inset 0 3px 6px rgba(255,255,255,0.6);
+      transition: all 0.1s;
+    }
+    .btn-play-3d:active {
+      transform: translateY(5px);
+      box-shadow: 0 2px 0 #801b00, 0 5px 10px rgba(0,0,0,0.6);
+    }
+
+    .tablet-frame {
+      background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
+      border: 5px solid #bae6fd;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.85), inset 0 4px 8px rgba(255,255,255,0.5);
+    }
+    .tablet-screen {
+      background: linear-gradient(180deg, #fef3c7 0%, #fde68a 100%);
+      border: 3px solid #b45309;
+      box-shadow: inset 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .workbench {
+      background: linear-gradient(145deg, #4b5563, #374151);
+      border: 4px solid #6b7280;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.7), inset 0 3px 6px rgba(255,255,255,0.3);
+      position: relative;
+    }
+    .rivet {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #d1d5db, #4b5563);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.8);
+      position: absolute;
+    }
+    .board-grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 4px;
+      background: #181c29;
+      padding: 8px;
+      border-radius: 16px;
+      box-shadow: inset 0 6px 16px rgba(0,0,0,0.85);
+      position: relative;
+    }
+    .cell {
+      aspect-ratio: 1 / 1;
+      background: linear-gradient(180deg, #252b3d 0%, #1e2333 100%);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cell-divider-right {
+      border-right: 3px solid #9ca3af;
+      box-shadow: 2px 0 6px rgba(0, 0, 0, 0.6);
+    }
+    .cell-oil {
+      background: radial-gradient(circle, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.8) 70%);
+      border: 2px dashed #475569;
+    }
+    .cell-crate-1 {
+      background: linear-gradient(135deg, #78350f, #92400e);
+      border: 2px solid #b45309;
+    }
+    .cell-crate-2 {
+      background: linear-gradient(135deg, #92400e, #b45309);
+      border: 2px solid #d97706;
+    }
+    .portal-in::after {
+      content: '▼';
+      position: absolute;
+      bottom: -8px;
+      font-size: 11px;
+      color: #38bdf8;
+      text-shadow: 0 0 8px #0284c7;
+      z-index: 20;
+      pointer-events: none;
+      animation: pulse-portal 1.4s infinite;
+    }
+    .portal-in {
+      box-shadow: inset 0 -6px 12px rgba(56, 189, 248, 0.45);
+      border-bottom: 2px solid #38bdf8;
+    }
+    .portal-out::before {
+      content: '▼';
+      position: absolute;
+      top: -8px;
+      font-size: 11px;
+      color: #fb923c;
+      text-shadow: 0 0 8px #ea580c;
+      z-index: 20;
+      pointer-events: none;
+      animation: pulse-portal 1.4s infinite;
+    }
+    .portal-out {
+      box-shadow: inset 0 6px 12px rgba(251, 146, 60, 0.45);
+      border-top: 2px solid #fb923c;
+    }
+    @keyframes pulse-portal {
+      0%, 100% { transform: scale(1); opacity: 0.85; }
+      50% { transform: scale(1.25); opacity: 1; }
+    }
+    .tile {
+      width: 90%;
+      height: 90%;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.18s ease, opacity 0.18s ease;
+      filter: drop-shadow(0 4px 4px rgba(0,0,0,0.5));
+      z-index: 5;
+    }
+    .tile.selected {
+      transform: scale(1.16);
+      filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.95));
+      z-index: 15;
+    }
+    .tile-spawn {
+      animation: drop-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes drop-in {
+      0% { transform: translateY(-28px) scale(0.7); opacity: 0; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .tool-btn {
+      background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
+      border: 2px solid #93c5fd;
+      box-shadow: 0 6px 0 #1e3a8a, 0 8px 15px rgba(0,0,0,0.5), inset 0 2px 3px rgba(255,255,255,0.4);
+      transition: all 0.1s;
+    }
+    .tool-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #1e3a8a;
+    }
+    .tool-btn.active-tool {
+      background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
+      border-color: #fde68a;
+      box-shadow: 0 0 16px #f59e0b;
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between text-white select-none">
+
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ С ДАННЫМИ TELEGRAM -->
+  <header class="w-full max-w-md mx-auto flex items-center justify-between px-3 pt-2 z-30">
+    <div class="flex items-center gap-2">
+      <div id="tg-avatar-wrap" class="w-12 h-12 rounded-full bg-gradient-to-b from-cyan-400 to-blue-600 p-0.5 shadow-lg flex items-center justify-center border-2 border-cyan-200 relative overflow-hidden">
+        <span id="tg-avatar-icon" class="text-xl">👨‍🔧</span>
+        <span id="header-lvl" class="absolute -bottom-1 -right-1 bg-amber-400 text-slate-900 font-black text-[10px] px-1.5 py-0.5 rounded-full border border-white z-10">1</span>
+      </div>
+      <div class="flex flex-col">
+        <span id="tg-username" class="text-xs font-black text-amber-200 leading-tight">Механик</span>
+        <span class="text-[9px] text-slate-400">Garage Go! TMA</span>
+      </div>
+    </div>
+    <div class="glass-capsule px-3 py-1 rounded-full flex items-center gap-1.5">
+      <span class="text-base">⛽</span>
+      <span class="text-sm font-black text-emerald-400">5/5</span>
+    </div>
+    <div class="glass-capsule px-3 py-1 rounded-full flex items-center gap-1.5">
+      <span class="text-base">🪙</span>
+      <span id="coins-val" class="text-sm font-black text-amber-300">250</span>
+    </div>
+    <div class="glass-capsule px-3 py-1 rounded-full flex items-center gap-1.5">
+      <span class="text-base">⭐</span>
+      <span id="stars-val" class="text-sm font-black text-sky-300">3</span>
+    </div>
+  </header>
+
+  <!-- ЭКРАН 1: ГАРАЖ -->
+  <div id="garage-screen" class="garage-bg flex-1 flex flex-col justify-between w-full h-full absolute inset-0 pt-16 pb-3 px-3 z-10">
+    <div class="w-full max-w-md mx-auto flex items-center justify-between">
+      <div class="bg-black/45 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-white/15">
+        <div class="text-[10px] text-amber-300 font-bold uppercase tracking-wider">Проект #1: Пикап Деда</div>
+        <div class="flex items-center gap-2 mt-0.5">
+          <div class="w-28 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-white/20">
+            <div id="garage-progress-bar" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-500" style="width: 0%"></div>
+          </div>
+          <span id="garage-progress-txt" class="text-xs font-black text-white">0%</span>
+        </div>
+      </div>
+      <button onclick="openTablet()" class="glass-capsule px-3 py-1.5 rounded-2xl text-xs font-bold text-amber-200 flex items-center gap-1.5 active:scale-95 transition">
+        <span>📋</span> Задачи <span id="badge-tasks" class="bg-red-500 text-white text-[10px] px-1.5 rounded-full font-black">3</span>
+      </button>
+    </div>
+
+    <!-- ПИКАП НА ПОДЪЕМНИКЕ -->
+    <div class="relative w-full max-w-md mx-auto my-auto h-72 flex items-center justify-center">
+      <div class="absolute left-2 bottom-6 opacity-40 text-4xl pointer-events-none">🛞🛞</div>
+      <div class="absolute right-3 bottom-6 opacity-40 text-4xl pointer-events-none">🛢️🧰</div>
+
+      <div id="pin-engine" onclick="startTaskCustomization('engine')" class="car-pin bg-gradient-to-b from-amber-300 to-orange-500 border-2 border-yellow-100 absolute top-8 left-20">
+        <span class="text-2xl">⚙️</span>
+      </div>
+      <div id="pin-paint" onclick="startTaskCustomization('paint')" class="car-pin bg-gradient-to-b from-fuchsia-400 to-purple-600 border-2 border-pink-100 absolute top-10 right-16">
+        <span class="text-2xl">🎨</span>
+      </div>
+      <div id="pin-wheels" onclick="startTaskCustomization('wheels')" class="car-pin bg-gradient-to-b from-sky-400 to-blue-600 border-2 border-sky-100 absolute bottom-4 left-1/2 -translate-x-1/2">
+        <span class="text-2xl">🔧</span>
+      </div>
+
+      <svg id="pickup-svg" viewBox="0 0 420 230" class="w-full h-full drop-shadow-[0_18px_18px_rgba(0,0,0,0.75)] transition-transform duration-300">
+        <rect x="70" y="195" width="280" height="10" rx="4" fill="#1e3a8a" stroke="#60a5fa" stroke-width="2"/>
+        <rect x="195" y="125" width="30" height="75" fill="#2563eb" stroke="#93c5fd" stroke-width="2"/>
+        <rect x="125" y="160" width="170" height="12" rx="4" fill="#f59e0b" stroke="#fef08a" stroke-width="2"/>
+
+        <g id="car-engine-layer">
+          <rect x="92" y="96" width="52" height="32" rx="5" fill="#57534e" stroke="#292524" stroke-width="3"/>
+          <circle cx="118" cy="94" r="12" fill="#44403c" stroke="#1c1917" stroke-width="2"/>
+        </g>
+
+        <g id="car-body-layer">
+          <path id="pickup-main-paint" d="M 65 130 Q 65 95 100 95 L 155 95 L 180 52 L 265 52 L 270 100 L 365 100 L 365 148 L 65 148 Z" fill="#78909c" stroke="#263238" stroke-width="4" stroke-linejoin="round"/>
+          <path d="M 186 60 L 256 60 L 260 95 L 166 95 Z" fill="#1e293b" stroke="#334155" stroke-width="3"/>
+          <g id="rust-patches">
+            <ellipse cx="120" cy="122" rx="22" ry="9" fill="#9a3412" opacity="0.75"/>
+            <ellipse cx="225" cy="130" rx="28" ry="11" fill="#7c2d12" opacity="0.75"/>
+            <circle cx="315" cy="118" r="14" fill="#9a3412" opacity="0.7"/>
+          </g>
+          <path id="hotrod-flames" class="hidden" d="M 68 135 C 110 115, 130 140, 175 120 C 145 142, 195 144, 230 135 L 68 145 Z" fill="#f97316" stroke="#facc15" stroke-width="2"/>
+          <rect id="sport-stripes" class="hidden" x="180" y="54" width="16" height="92" fill="#38bdf8" opacity="0.85"/>
+          <rect x="52" y="132" width="22" height="18" rx="6" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
+          <circle cx="72" cy="114" r="9" fill="#fef08a" stroke="#ca8a04" stroke-width="3"/>
+        </g>
+
+        <g id="car-wheels-layer">
+          <circle id="wheel-front-tire" cx="125" cy="152" r="30" fill="#334155" stroke="#0f172a" stroke-width="4"/>
+          <circle id="wheel-front-rim" cx="125" cy="152" r="14" fill="#94a3b8" stroke="#1e293b" stroke-width="3"/>
+          <circle id="wheel-back-tire" cx="305" cy="152" r="18" fill="#475569" stroke="#1e293b" stroke-width="4" stroke-dasharray="6 4"/>
+          <circle id="wheel-back-rim" cx="305" cy="152" r="8" fill="#9a3412"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- ОКНО ПРИМЕРКИ СТИЛЕЙ -->
+    <div id="chooser-panel" class="hidden w-full max-w-md mx-auto glass-capsule rounded-3xl p-3 border-2 border-amber-300 z-30 mb-1">
+      <div class="flex items-center justify-between mb-2 px-1">
+        <span id="chooser-title" class="text-xs font-black uppercase text-amber-300 tracking-wider">Выберите стиль:</span>
+        <div class="flex gap-2">
+          <button onclick="cancelCustomization()" class="bg-red-500 border-2 border-red-200 text-white font-black text-xs px-3 py-1 rounded-xl shadow">✖</button>
+          <button onclick="confirmCustomization()" class="bg-emerald-500 border-2 border-emerald-200 text-white font-black text-xs px-4 py-1 rounded-xl shadow animate-pulse">✔ Установить</button>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-2.5">
+        <button onclick="previewVariant(0)" id="var-btn-0" class="bg-slate-800/90 border-2 border-amber-400 rounded-2xl p-2 flex flex-col items-center transition">
+          <span id="var-icon-0" class="text-2xl mb-1">✨</span>
+          <span id="var-name-0" class="text-[11px] font-bold text-white text-center leading-tight">Вариант 1</span>
+        </button>
+        <button onclick="previewVariant(1)" id="var-btn-1" class="bg-slate-800/90 border-2 border-white/15 rounded-2xl p-2 flex flex-col items-center transition">
+          <span id="var-icon-1" class="text-2xl mb-1">🖤</span>
+          <span id="var-name-1" class="text-[11px] font-bold text-white text-center leading-tight">Вариант 2</span>
+        </button>
+        <button onclick="previewVariant(2)" id="var-btn-2" class="bg-slate-800/90 border-2 border-white/15 rounded-2xl p-2 flex flex-col items-center transition">
+          <span id="var-icon-2" class="text-2xl mb-1">🔥</span>
+          <span id="var-name-2" class="text-[11px] font-bold text-white text-center leading-tight">Вариант 3</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- НИЖНИЙ НАВИГАЦИОННЫЙ ДОК -->
+    <div class="w-full max-w-md mx-auto flex items-center justify-between gap-3">
+      <div class="glass-capsule flex-1 rounded-3xl py-2 px-3 flex items-center justify-around">
+        <button onclick="openTablet()" class="flex flex-col items-center active:scale-95 transition">
+          <span class="text-2xl">📱</span>
+          <span class="text-[10px] font-bold text-amber-200 mt-0.5">Планшет</span>
+        </button>
+        <button onclick="tgHaptic('selection'); showToast('Кланы откроются на 5 уровне!')" class="flex flex-col items-center opacity-80">
+          <span class="text-2xl">🛡️</span>
+          <span class="text-[10px] font-bold text-slate-300 mt-0.5">Кланы</span>
+        </button>
+        <button onclick="tgHaptic('selection'); showToast('Детали можно перекрашивать прямо на машине!')" class="flex flex-col items-center opacity-80">
+          <span class="text-2xl">🏆</span>
+          <span class="text-[10px] font-bold text-slate-300 mt-0.5">Рейтинг</span>
+        </button>
+      </div>
+      <button onclick="switchToMatch3()" class="btn-play-3d px-6 py-3 rounded-3xl flex flex-col items-center justify-center min-w-[145px]">
+        <span class="text-xl font-black tracking-wide text-white drop-shadow">ИГРАТЬ!</span>
+        <span id="play-btn-lvl" class="text-[11px] font-bold text-amber-100 uppercase">УРОВЕНЬ 1 ▶</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ПЛАНШЕТ МАСТЕРА -->
+  <div id="tablet-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden items-center justify-center z-40 p-4">
+    <div class="tablet-frame max-w-md w-full rounded-[32px] p-3.5 relative">
+      <button onclick="closeTablet()" class="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-gradient-to-b from-red-400 to-red-600 border-2 border-white font-black text-white shadow-lg flex items-center justify-center text-lg">✖</button>
+      <div class="tablet-screen rounded-2xl p-4 text-slate-900">
+        <div class="flex items-center justify-between border-b-2 border-amber-700/20 pb-3 mb-3">
+          <div>
+            <h2 class="text-lg font-black text-amber-950 uppercase leading-none">ДЕНЬ 1: ЗАПУСК МОТОРА</h2>
+            <p class="text-xs font-bold text-amber-800 mt-0.5">Восстановите дедушкин пикап</p>
+          </div>
+          <div class="flex items-center gap-2 bg-amber-950/15 px-3 py-1.5 rounded-xl">
+            <span id="tablet-prog-txt" class="text-sm font-black text-amber-900">0%</span>
+            <span class="text-xl">🎁</span>
+          </div>
+        </div>
+        <div id="tablet-tasks-list" class="space-y-2.5 max-h-72 overflow-y-auto pr-1"></div>
+        <div class="grid grid-cols-3 gap-2 mt-4 pt-2 border-t-2 border-amber-700/20 text-center text-xs font-black">
+          <div class="bg-amber-500 text-white py-1.5 rounded-xl shadow">📋 ЗАДАЧИ</div>
+          <div onclick="showToast('В ленте механик публикует фото проекта!')" class="bg-amber-900/15 text-amber-900 py-1.5 rounded-xl cursor-pointer">📰 ЛЕНТА</div>
+          <div onclick="closeTablet()" class="bg-amber-900/15 text-amber-900 py-1.5 rounded-xl cursor-pointer">🏠 ГАРАЖ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MATCH-3 ВЕРСТАК -->
+  <div id="match3-screen" class="hidden flex-1 flex flex-col items-center justify-between w-full h-full pt-14 pb-2 px-3 z-20">
+    <section class="w-full max-w-md glass-capsule rounded-2xl p-2.5 flex items-center justify-between my-1">
+      <button onclick="switchToGarage()" class="bg-slate-800 hover:bg-slate-700 border border-white/20 px-2.5 py-2 rounded-xl text-xs font-bold flex items-center gap-1 active:scale-95">
+        <span>⬅</span> Гараж
+      </button>
+      <div class="flex flex-col items-center justify-center bg-slate-900/90 border-2 border-sky-400/50 rounded-xl px-3.5 py-1 shadow-inner">
+        <span class="text-[9px] text-sky-300 uppercase tracking-wider font-bold">Ходы</span>
+        <span id="moves-count" class="text-xl font-black text-white leading-none">24</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1 bg-slate-800/90 px-2.5 py-1 rounded-xl border border-white/10">
+          <span id="target-icon-0" class="w-6 h-6 inline-block"></span>
+          <span id="target-val-0" class="text-sm font-black text-amber-400">12</span>
+        </div>
+        <div class="flex items-center gap-1 bg-slate-800/90 px-2.5 py-1 rounded-xl border border-white/10">
+          <span id="target-icon-1" class="w-6 h-6 inline-block"></span>
+          <span id="target-val-1" class="text-sm font-black text-emerald-400">10</span>
+        </div>
+      </div>
+    </section>
+
+    <main class="w-full max-w-md flex-1 flex flex-col items-center justify-center my-1">
+      <div class="workbench w-full p-3 rounded-3xl">
+        <div class="rivet top-2 left-2"></div>
+        <div class="rivet top-2 right-2"></div>
+        <div class="rivet bottom-2 left-2"></div>
+        <div class="rivet bottom-2 right-2"></div>
+        <div id="status-banner" class="text-center text-xs font-bold text-amber-300 mb-1.5 h-4 tracking-wide">
+          Свайпай бустеры друг на друга для комбо!
+        </div>
+        <div id="board" class="board-grid w-full"></div>
+      </div>
+    </main>
+
+    <footer class="w-full max-w-md flex items-center justify-around pb-1 pt-1">
+      <button onclick="activateTool('hammer')" id="btn-hammer" class="tool-btn w-16 h-16 rounded-2xl flex flex-col items-center justify-center relative">
+        <span class="text-2xl">🔨</span>
+        <span class="text-[10px] font-bold mt-0.5">Молоток</span>
+        <span id="cnt-hammer" class="absolute -top-1.5 -right-1.5 bg-red-500 border border-white text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">3</span>
+      </button>
+      <button onclick="activateTool('wrench')" id="btn-wrench" class="tool-btn w-16 h-16 rounded-2xl flex flex-col items-center justify-center relative">
+        <span class="text-2xl">🔧</span>
+        <span class="text-[10px] font-bold mt-0.5">Гайковерт</span>
+        <span id="cnt-wrench" class="absolute -top-1.5 -right-1.5 bg-red-500 border border-white text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">2</span>
+      </button>
+      <button onclick="activateTool('shuffle')" id="btn-shuffle" class="tool-btn w-16 h-16 rounded-2xl flex flex-col items-center justify-center relative">
+        <span class="text-2xl">🛢️</span>
+        <span class="text-[10px] font-bold mt-0.5">Продувка</span>
+        <span id="cnt-shuffle" class="absolute -top-1.5 -right-1.5 bg-red-500 border border-white text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">2</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- ОКНО ПОБЕДЫ -->
+  <div id="win-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="glass-capsule max-w-sm w-full rounded-3xl p-6 text-center border-2 border-amber-400">
+      <div class="text-5xl mb-2">🏆</div>
+      <h2 class="text-2xl font-black text-amber-300 uppercase">Уровень пройден!</h2>
+      <p class="text-sm text-slate-300 mt-1 mb-4">Получена звезда для восстановления пикапа!</p>
+      <div class="flex justify-center gap-4 mb-5">
+        <div class="bg-slate-900/90 px-4 py-2 rounded-xl border border-amber-400/40 font-black text-amber-300">⭐ +1</div>
+        <div class="bg-slate-900/90 px-4 py-2 rounded-xl border border-emerald-400/40 font-black text-emerald-300">🪙 +75</div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="winToGarage()" class="flex-1 py-3 rounded-2xl font-black text-sm bg-gradient-to-b from-sky-400 to-blue-600 border-2 border-sky-200 shadow-lg active:scale-95 transition">
+          🔧 В ГАРАЖ
+        </button>
+        <button onclick="nextLevel()" class="flex-1 py-3 rounded-2xl font-black text-sm bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-emerald-200 shadow-lg active:scale-95 transition">
+          ДАЛЬШЕ ▶
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 font-black text-xs px-4 py-2 rounded-full shadow-xl hidden z-50"></div>
+
+  <script>
+    // Инициализация Telegram WebApp SDK
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+      // Получаем данные профиля пользователя Telegram
+      const user = tg.initDataUnsafe?.user;
+      if (user) {
+        if (user.first_name) document.getElementById('tg-username').innerText = user.first_name;
+        if (user.photo_url) {
+          document.getElementById('tg-avatar-wrap').innerHTML = `<img src="${user.photo_url}" class="w-full h-full object-cover" />`;
+        }
+      }
+    }
+
+    // Функция тактильного отклика (HapticFeedback)
+    function tgHaptic(type = 'light') {
+      if (!tg?.HapticFeedback) return;
+      if (type === 'light') tg.HapticFeedback.impactOccurred('light');
+      else if (type === 'medium') tg.HapticFeedback.impactOccurred('medium');
+      else if (type === 'heavy') tg.HapticFeedback.impactOccurred('heavy');
+      else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+    }
+
+    // Сохранение и загрузка через Telegram CloudStorage
+    function saveGameProgress() {
+      if (!tg?.CloudStorage) {
+        localStorage.setItem('garage_save', JSON.stringify({ currentLevel, coins, stars, GARAGE_TASKS }));
+        return;
+      }
+      const data = JSON.stringify({ currentLevel, coins, stars, GARAGE_TASKS });
+      tg.CloudStorage.setItem('garage_save', data, (err, saved) => {
+        if (err) console.error('Ошибка сохранения в облако Telegram');
+      });
+    }
+
+    function loadGameProgress(callback) {
+      if (!tg?.CloudStorage) {
+        const saved = localStorage.getItem('garage_save');
+        if (saved) {
+          try {
+            const data = JSON.parse(saved);
+            currentLevel = data.currentLevel || 1;
+            coins = data.coins || 250;
+            stars = data.stars || 3;
+            if (data.GARAGE_TASKS) Object.assign(GARAGE_TASKS, data.GARAGE_TASKS);
+          } catch(e){}
+        }
+        if (callback) callback();
+        return;
+      }
+      tg.CloudStorage.getItem('garage_save', (err, val) => {
+        if (!err && val) {
+          try {
+            const data = JSON.parse(val);
+            currentLevel = data.currentLevel || 1;
+            coins = data.coins || 250;
+            stars = data.stars || 3;
+            if (data.GARAGE_TASKS) Object.assign(GARAGE_TASKS, data.GARAGE_TASKS);
+          } catch(e){}
+        }
+        if (callback) callback();
+      });
+    }
+
+    // МЕТА-ИГРА И ГАРАЖ
+    let currentLevel = 1;
+    let coins = 250;
+    let stars = 3;
+
+    const GARAGE_TASKS = {
+      engine: {
+        id: 'engine', title: 'Собрать мотор V8', desc: 'Без карбюратора пикап не заведется!', cost: 1, icon: '⚙️', done: false, selectedStyle: 0,
+        variants: [
+          { name: 'Ретро-хром', icon: '✨', engineColor: '#e2e8f0', intakeColor: '#38bdf8' },
+          { name: 'Спорт Турбо', icon: '🖤', engineColor: '#1e293b', intakeColor: '#ef4444' },
+          { name: 'Хот-род Нагнетатель', icon: '🔥', engineColor: '#f59e0b', intakeColor: '#fde047' }
+        ]
+      },
+      paint: {
+        id: 'paint', title: 'Покрасить кузов', desc: 'Вернем машине выставочный блеск!', cost: 1, icon: '🎨', done: false, selectedStyle: 0,
+        variants: [
+          { name: 'Бирюзовый Винтаж', icon: '💎', bodyColor: '#06b6d4', style: 'retro' },
+          { name: 'Ночной Перехватчик', icon: '🖤', bodyColor: '#1e293b', style: 'sport' },
+          { name: 'Хот-род Пламя', icon: '🔥', bodyColor: '#b91c1c', style: 'hotrod' }
+        ]
+      },
+      wheels: {
+        id: 'wheels', title: 'Поставить колеса', desc: 'Выберем крутые диски для подвески!', cost: 1, icon: '🛞', done: false, selectedStyle: 0,
+        variants: [
+          { name: 'Белые Вайтволы', icon: '⚪', tireColor: '#1e293b', rimColor: '#f8fafc', wallColor: '#ffffff' },
+          { name: 'Золотая Ковка', icon: '🌟', tireColor: '#0f172a', rimColor: '#facc15', wallColor: '#38bdf8' },
+          { name: 'Дрэг-Слики', icon: '🔥', tireColor: '#18181b', rimColor: '#ef4444', wallColor: '#f97316' }
+        ]
+      }
+    };
+
+    let activeCustomPart = null;
+    let previewIndex = 0;
+
+    function openTablet() {
+      tgHaptic('light');
+      renderTabletTasks();
+      const modal = document.getElementById('tablet-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeTablet() {
+      tgHaptic('light');
+      const modal = document.getElementById('tablet-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function renderTabletTasks() {
+      const list = document.getElementById('tablet-tasks-list');
+      list.innerHTML = '';
+      Object.values(GARAGE_TASKS).forEach(task => {
+        const card = document.createElement('div');
+        card.className = 'bg-amber-50 border-2 border-amber-700/30 rounded-2xl p-3 flex items-center justify-between shadow-sm';
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-b from-amber-300 to-amber-500 flex items-center justify-center text-2xl shadow-inner border border-white">
+              ${task.icon}
+            </div>
+            <div>
+              <div class="font-black text-sm text-slate-900">${task.title}</div>
+              <div class="text-xs text-slate-600 italic">${task.desc}</div>
+            </div>
+          </div>
+          ${task.done
+            ? `<button onclick="closeTablet(); startTaskCustomization('${task.id}', true)" class="bg-sky-500 text-white font-black text-xs px-3 py-2 rounded-xl shadow">Стиль 🎨</button>`
+            : `<button onclick="closeTablet(); startTaskCustomization('${task.id}')" class="bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-emerald-200 text-white font-black text-sm px-4 py-2 rounded-xl shadow active:scale-95">⭐ ${task.cost}</button>`
+          }
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function startTaskCustomization(partId, isFree = false) {
+      const task = GARAGE_TASKS[partId];
+      if (!task.done && !isFree && stars < task.cost) {
+        showToast('Не хватает ⭐! Пройдите уровень Match-3.');
+        switchToMatch3();
+        return;
+      }
+      activeCustomPart = partId;
+      previewIndex = task.selectedStyle || 0;
+      document.getElementById('chooser-title').innerText = `СТИЛЬ: ${task.title.toUpperCase()}`;
+      task.variants.forEach((v, idx) => {
+        document.getElementById(`var-icon-${idx}`).innerText = v.icon;
+        document.getElementById(`var-name-${idx}`).innerText = v.name;
+      });
+      document.getElementById('chooser-panel').classList.remove('hidden');
+      document.getElementById('pickup-svg').classList.add('scale-105');
+      previewVariant(previewIndex);
+    }
+
+    function previewVariant(idx) {
+      previewIndex = idx;
+      tgHaptic('light');
+      for (let i = 0; i < 3; i++) {
+        const btn = document.getElementById(`var-btn-${i}`);
+        btn.classList.toggle('border-amber-400', i === idx);
+        btn.classList.toggle('scale-105', i === idx);
+        btn.classList.toggle('border-white/15', i !== idx);
+      }
+      applyCarVisuals(activeCustomPart, idx);
+    }
+
+    function applyCarVisuals(partId, styleIdx) {
+      const task = GARAGE_TASKS[partId];
+      const v = task.variants[styleIdx];
+      if (partId === 'engine') {
+        document.getElementById('car-engine-layer').innerHTML = `
+          <rect x="88" y="88" width="58" height="38" rx="6" fill="${v.engineColor}" stroke="#0f172a" stroke-width="3"/>
+          <rect x="98" y="72" width="38" height="18" rx="4" fill="${v.intakeColor}" stroke="#ffffff" stroke-width="2"/>
+        `;
+      } else if (partId === 'paint') {
+        document.getElementById('pickup-main-paint').setAttribute('fill', v.bodyColor);
+        document.getElementById('rust-patches').classList.add('hidden');
+        document.getElementById('hotrod-flames').classList.toggle('hidden', v.style !== 'hotrod');
+        document.getElementById('sport-stripes').classList.toggle('hidden', v.style !== 'sport');
+      } else if (partId === 'wheels') {
+        document.getElementById('car-wheels-layer').innerHTML = `
+          <circle cx="125" cy="152" r="32" fill="${v.tireColor}" stroke="${v.wallColor}" stroke-width="4"/>
+          <circle cx="125" cy="152" r="16" fill="${v.rimColor}" stroke="#0f172a" stroke-width="3"/>
+          <circle cx="305" cy="152" r="32" fill="${v.tireColor}" stroke="${v.wallColor}" stroke-width="4"/>
+          <circle cx="305" cy="152" r="16" fill="${v.rimColor}" stroke="#0f172a" stroke-width="3"/>
+        `;
+      }
+    }
+
+    function confirmCustomization() {
+      tgHaptic('success');
+      const task = GARAGE_TASKS[activeCustomPart];
+      if (!task.done) { stars -= task.cost; task.done = true; }
+      task.selectedStyle = previewIndex;
+      document.getElementById('chooser-panel').classList.add('hidden');
+      document.getElementById('pickup-svg').classList.remove('scale-105');
+      activeCustomPart = null;
+      updateGarageProgress();
+      updateUI();
+      saveGameProgress();
+      showToast('Успешно установлено! 🎉');
+    }
+
+    function cancelCustomization() {
+      tgHaptic('light');
+      document.getElementById('chooser-panel').classList.add('hidden');
+      document.getElementById('pickup-svg').classList.remove('scale-105');
+      activeCustomPart = null;
+    }
+
+    function updateGarageProgress() {
+      const all = Object.values(GARAGE_TASKS);
+      const doneCount = all.filter(t => t.done).length;
+      const pct = Math.round((doneCount / all.length) * 100);
+      document.getElementById('garage-progress-bar').style.width = `${pct}%`;
+      document.getElementById('garage-progress-txt').innerText = `${pct}%`;
+      document.getElementById('tablet-prog-txt').innerText = `${pct}%`;
+      document.getElementById('badge-tasks').innerText = all.length - doneCount;
+
+      // Отрисовка уже сохраненных стилей пикапа при загрузке
+      Object.keys(GARAGE_TASKS).forEach(k => {
+        if (GARAGE_TASKS[k].done) {
+          applyCarVisuals(k, GARAGE_TASKS[k].selectedStyle);
+        }
+      });
+    }
+
+    function switchToMatch3() {
+      tgHaptic('medium');
+      document.getElementById('garage-screen').classList.add('hidden');
+      document.getElementById('match3-screen').classList.remove('hidden');
+    }
+
+    function switchToGarage() {
+      tgHaptic('light');
+      document.getElementById('match3-screen').classList.add('hidden');
+      document.getElementById('garage-screen').classList.remove('hidden');
+      updateUI();
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.innerText = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2800);
+    }
+
+    // MATCH-3 ИГРОВОЙ ДВИЖОК
+    const SIZE = 8;
+    const TYPES = ['piston', 'gear', 'jerrycan', 'tire', 'spark', 'battery'];
+
+    const SVGS = {
+      piston: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="14" y="8" width="36" height="24" rx="6" fill="#ef4444" stroke="#7f1d1d" stroke-width="3"/><line x1="16" y1="16" x2="48" y2="16" stroke="#fca5a5" stroke-width="3"/><rect x="26" y="32" width="12" height="18" fill="#cbd5e1" stroke="#475569" stroke-width="3"/><circle cx="32" cy="50" r="9" fill="#94a3b8" stroke="#334155" stroke-width="3"/><circle cx="32" cy="50" r="4" fill="#1e293b"/></svg>`,
+      gear: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="22" fill="#facc15" stroke="#854d0e" stroke-width="4" stroke-dasharray="10 6"/><circle cx="32" cy="32" r="16" fill="#eab308" stroke="#fef08a" stroke-width="2"/><circle cx="32" cy="32" r="7" fill="#1e293b" stroke="#854d0e" stroke-width="3"/></svg>`,
+      jerrycan: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="14" y="12" width="36" height="42" rx="8" fill="#f97316" stroke="#7c2d12" stroke-width="3"/><rect x="18" y="6" width="10" height="6" rx="2" fill="#e2e8f0" stroke="#475569" stroke-width="2"/><path d="M32 25 C32 25 24 35 24 40 A8 8 0 0 0 40 40 C40 35 32 25 32 25 Z" fill="#fdba74"/></svg>`,
+      tire: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="24" fill="#22c55e" stroke="#14532d" stroke-width="4" stroke-dasharray="8 4"/><circle cx="32" cy="32" r="13" fill="#e2e8f0" stroke="#475569" stroke-width="3"/><circle cx="32" cy="32" r="5" fill="#334155"/></svg>`,
+      spark: `<svg viewBox="0 0 64 64" class="w-full h-full"><g transform="rotate(45 32 32)"><rect x="25" y="6" width="14" height="6" rx="3" fill="#38bdf8"/><rect x="22" y="12" width="20" height="20" rx="4" fill="#0284c7" stroke="#0c4a6e" stroke-width="3"/><rect x="24" y="32" width="16" height="14" fill="#cbd5e1" stroke="#334155" stroke-width="3"/><rect x="28" y="46" width="8" height="8" fill="#38bdf8"/><circle cx="32" cy="56" r="3" fill="#fef08a"/></g></svg>`,
+      battery: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="12" y="16" width="40" height="36" rx="7" fill="#a855f7" stroke="#4c1d95" stroke-width="3"/><rect x="18" y="10" width="8" height="6" rx="2" fill="#cbd5e1" stroke="#334155" stroke-width="2"/><rect x="38" y="10" width="8" height="6" rx="2" fill="#ef4444" stroke="#7f1d1d" stroke-width="2"/><polygon points="34,22 24,35 32,35 28,46 40,32 32,32" fill="#fde047"/></svg>`,
+      rocket: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="8" y="20" width="48" height="24" rx="10" fill="#06b6d4" stroke="#ecfeff" stroke-width="3"/><path d="M16 20 L24 44 M28 20 L36 44 M40 20 L48 44" stroke="#164e63" stroke-width="4"/><circle cx="14" cy="32" r="5" fill="#fef08a"/><circle cx="50" cy="32" r="5" fill="#fef08a"/></svg>`,
+      turbo: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="24" fill="#94a3b8" stroke="#facc15" stroke-width="4"/><circle cx="32" cy="32" r="14" fill="#334155"/><path d="M32 18 L36 32 L32 46 L28 32 Z M18 32 L32 28 L46 32 L32 36 Z" fill="#facc15"/></svg>`,
+      nos: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="16" y="14" width="32" height="42" rx="12" fill="#2563eb" stroke="#93c5fd" stroke-width="3"/><rect x="26" y="6" width="12" height="8" rx="2" fill="#ef4444"/><rect x="20" y="26" width="24" height="14" rx="3" fill="#facc15"/><text x="32" y="37" font-size="10" font-weight="900" text-anchor="middle" fill="#7f1d1d">NOS</text></svg>`,
+      plasma: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="25" fill="#1e1b4b" stroke="#e2e8f0" stroke-width="4" stroke-dasharray="8 4"/><circle cx="32" cy="32" r="17" fill="url(#plGrad)"/><defs><radialGradient id="plGrad"><stop offset="0%" stop-color="#ffffff"/><stop offset="40%" stop-color="#38bdf8"/><stop offset="75%" stop-color="#ec4899"/><stop offset="100%" stop-color="#eab308"/></radialGradient></defs></svg>`
+    };
+
+    let board = [];
+    let selected = null;
+    let isBusy = false;
+    let moves = 24;
+    let activeTool = null;
+    let tools = { hammer: 3, wrench: 2, shuffle: 2 };
+    let targets = { gear: 12, tire: 10 };
+    let startX = 0, startY = 0, swipeCell = null;
+
+    function initGame() {
+      loadGameProgress(() => {
+        document.getElementById('target-icon-0').innerHTML = SVGS.gear;
+        document.getElementById('target-icon-1').innerHTML = SVGS.tire;
+        createBoard();
+        renderBoard();
+        updateGarageProgress();
+        updateUI();
+      });
+    }
+
+    function randomType() {
+      return TYPES[Math.floor(Math.random() * TYPES.length)];
+    }
+
+    function createBoard() {
+      board = [];
+      for (let r = 0; r < SIZE; r++) {
+        board[r] = [];
+        for (let c = 0; c < SIZE; c++) {
+          let t;
+          do {
+            t = randomType();
+          } while (
+            (c >= 2 && board[r][c - 1]?.type === t && board[r][c - 2]?.type === t) ||
+            (r >= 2 && board[r - 1][c]?.type === t && board[r - 2][c]?.type === t)
+          );
+          let obstacle = null;
+          if ((r === 2 && c === 2) || (r === 5 && c === 5)) obstacle = 'oil';
+          if ((r === 1 && c === 6) || (r === 6 && c === 1)) obstacle = 'crate2';
+          board[r][c] = { type: t, booster: null, obstacle };
+        }
+      }
+    }
+
+    function renderBoard() {
+      const container = document.getElementById('board');
+      container.innerHTML = '';
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          if (c === 3) cell.classList.add('cell-divider-right');
+          if (r === SIZE - 1 && c <= 2) cell.classList.add('portal-in');
+          if (r === 0 && c >= 5) cell.classList.add('portal-out');
+
+          const item = board[r][c];
+          if (item) {
+            if (item.obstacle === 'oil') cell.classList.add('cell-oil');
+            if (item.obstacle === 'crate1') cell.classList.add('cell-crate-1');
+            if (item.obstacle === 'crate2') cell.classList.add('cell-crate-2');
+
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            if (selected && selected.r === r && selected.c === c) tile.classList.add('selected');
+            if (item.justSpawned) {
+              tile.classList.add('tile-spawn');
+              delete item.justSpawned;
+            }
+            tile.innerHTML = item.booster ? SVGS[item.booster] : SVGS[item.type];
+            tile.addEventListener('pointerdown', (e) => onPointerDown(e, r, c));
+            cell.appendChild(tile);
+          }
+          container.appendChild(cell);
+        }
+      }
+    }
+
+    function onPointerDown(e, r, c) {
+      if (isBusy || moves <= 0) return;
+      if (activeTool) { useToolOn(r, c); return; }
+
+      tgHaptic('light');
+      startX = e.clientX;
+      startY = e.clientY;
+      swipeCell = { r, c };
+
+      const onPointerMove = (moveEvent) => {
+        if (!swipeCell) return;
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        if (Math.hypot(dx, dy) > 24) {
+          let nr = r, nc = c;
+          if (Math.abs(dx) > Math.abs(dy)) nc += dx > 0 ? 1 : -1;
+          else nr += dy > 0 ? 1 : -1;
+          cleanupListeners();
+          if (nr >= 0 && nr < SIZE && nc >= 0 && nc < SIZE) {
+            selected = null;
+            attemptSwap(r, c, nr, nc);
+          }
+        }
+      };
+
+      const onPointerUp = () => {
+        cleanupListeners();
+        handleCellTap(r, c);
+      };
+
+      const cleanupListeners = () => {
+        swipeCell = null;
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
+      };
+
+      window.addEventListener('pointermove', onPointerMove);
+      window.addEventListener('pointerup', onPointerUp);
+    }
+
+    function handleCellTap(r, c) {
+      const clicked = board[r][c];
+      if (!clicked) return;
+      if (!selected && clicked.booster && clicked.booster !== 'plasma') {
+        moves--;
+        updateUI();
+        triggerBooster(r, c, clicked.booster);
+        return;
+      }
+      if (!selected) {
+        selected = { r, c };
+        renderBoard();
+      } else if (selected.r === r && selected.c === c) {
+        selected = null;
+        renderBoard();
+      } else if (Math.abs(selected.r - r) + Math.abs(selected.c - c) === 1) {
+        const sr = selected.r, sc = selected.c;
+        selected = null;
+        attemptSwap(sr, sc, r, c);
+      } else {
+        selected = { r, c };
+        renderBoard();
+      }
+    }
+
+    async function attemptSwap(r1, c1, r2, c2) {
+      isBusy = true;
+      swap(r1, c1, r2, c2);
+      renderBoard();
+      await sleep(180);
+
+      const A = board[r1][c1];
+      const B = board[r2][c2];
+
+      if (A?.booster && B?.booster) {
+        moves--;
+        tgHaptic('success');
+        updateUI();
+        await triggerCombo(r1, c1, r2, c2, A.booster, B.booster);
+        await cascadeLoop();
+        isBusy = false;
+        checkWin();
+        return;
+      }
+
+      if (A?.booster === 'plasma' || B?.booster === 'plasma') {
+        moves--;
+        tgHaptic('success');
+        const plasmaPos = A?.booster === 'plasma' ? { r: r1, c: c1 } : { r: r2, c: c2 };
+        const other = A?.booster === 'plasma' ? B : A;
+        await activatePlasma(plasmaPos.r, plasmaPos.c, other?.type || randomType());
+        await cascadeLoop();
+        isBusy = false;
+        checkWin();
+        return;
+      }
+
+      if (A?.booster || B?.booster) {
+        moves--;
+        tgHaptic('medium');
+        if (A?.booster) await triggerBooster(r1, c1, A.booster, true);
+        if (B?.booster) await triggerBooster(r2, c2, B.booster, true);
+        await cascadeLoop();
+        isBusy = false;
+        checkWin();
+        return;
+      }
+
+      const matches = findMatches(r2, c2);
+      if (matches.matched.size === 0) {
+        swap(r1, c1, r2, c2);
+        renderBoard();
+        isBusy = false;
+        return;
+      }
+
+      moves--;
+      updateUI();
+      await resolveMatches(matches);
+      await cascadeLoop();
+      isBusy = false;
+      checkWin();
+    }
+
+    function swap(r1, c1, r2, c2) {
+      const tmp = board[r1][c1];
+      board[r1][c1] = board[r2][c2];
+      board[r2][c2] = tmp;
+    }
+
+    async function triggerCombo(r1, c1, r2, c2, b1, b2) {
+      board[r1][c1] = null;
+      board[r2][c2] = null;
+      if (b1 === 'plasma' && b2 === 'plasma') {
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) clearCell(r, c, true);
+        }
+      } else if (b1 === 'turbo' && b2 === 'turbo') {
+        for (let i = 0; i < 3; i++) {
+          const target = findGoalCell();
+          if (target) clearCell(target.r, target.c, true);
+        }
+      } else if (b1 === 'plasma' || b2 === 'plasma') {
+        const otherBooster = b1 === 'plasma' ? b2 : b1;
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) {
+            if (board[r][c]) { board[r][c].booster = otherBooster; clearCell(r, c, true); }
+          }
+        }
+      } else {
+        const midR = Math.floor((r1 + r2) / 2);
+        const midC = Math.floor((c1 + c2) / 2);
+        for (let i = 0; i < SIZE; i++) {
+          for (let dr = -1; dr <= 1; dr++) clearCell(midR + dr, i, true);
+          for (let dc = -1; dc <= 1; dc++) clearCell(i, midC + dc, true);
+        }
+      }
+      renderBoard();
+      await sleep(300);
+    }
+
+    function findMatches(pivotR = null, pivotC = null) {
+      const matched = new Set();
+      const boostersToCreate = [];
+      const hLines = [], vLines = [];
+
+      for (let r = 0; r < SIZE; r++) {
+        let c = 0;
+        while (c < SIZE) {
+          const t = board[r][c]?.type;
+          if (!t || board[r][c]?.booster) { c++; continue; }
+          let end = c + 1;
+          while (end < SIZE && board[r][end]?.type === t && !board[r][end]?.booster) end++;
+          const len = end - c;
+          if (len >= 3) {
+            const cells = [];
+            for (let k = c; k < end; k++) cells.push([r, k]);
+            hLines.push({ cells, len, type: t });
+          }
+          c = end;
+        }
+      }
+
+      for (let c = 0; c < SIZE; c++) {
+        let r = 0;
+        while (r < SIZE) {
+          const t = board[r][c]?.type;
+          if (!t || board[r][c]?.booster) { r++; continue; }
+          let end = r + 1;
+          while (end < SIZE && board[end][c]?.type === t && !board[end][c]?.booster) end++;
+          const len = end - r;
+          if (len >= 3) {
+            const cells = [];
+            for (let k = r; k < end; k++) cells.push([k, c]);
+            vLines.push({ cells, len, type: t });
+          }
+          r = end;
+        }
+      }
+
+      for (let r = 0; r < SIZE - 1; r++) {
+        for (let c = 0; c < SIZE - 1; c++) {
+          const t = board[r][c]?.type;
+          if (!t || board[r][c]?.booster) continue;
+          if (
+            board[r][c + 1]?.type === t && !board[r][c + 1]?.booster &&
+            board[r + 1][c]?.type === t && !board[r + 1][c]?.booster &&
+            board[r + 1][c + 1]?.type === t && !board[r + 1][c + 1]?.booster
+          ) {
+            [[r, c], [r, c + 1], [r + 1, c], [r + 1, c + 1]].forEach(([rr, cc]) => matched.add(`${rr},${cc}`));
+            boostersToCreate.push({ r: r + 1, c: c, booster: 'turbo', type: t });
+          }
+        }
+      }
+
+      const usedH = new Set(), usedV = new Set();
+      hLines.forEach((h, hi) => {
+        vLines.forEach((v, vi) => {
+          if (h.type !== v.type) return;
+          const intersect = h.cells.find(([hr, hc]) => v.cells.some(([vr, vc]) => hr === vr && hc === vc));
+          if (intersect) {
+            usedH.add(hi);
+            usedV.add(vi);
+            boostersToCreate.push({ r: intersect[0], c: intersect[1], booster: 'nos', type: h.type });
+          }
+        });
+      });
+
+      hLines.forEach((h, hi) => {
+        h.cells.forEach(([r, c]) => matched.add(`${r},${c}`));
+        if (!usedH.has(hi)) {
+          const spawn = h.cells.find(([r, c]) => r === pivotR && c === pivotC) || h.cells[1];
+          if (h.len >= 5) boostersToCreate.push({ r: spawn[0], c: spawn[1], booster: 'plasma', type: h.type });
+          else if (h.len === 4) boostersToCreate.push({ r: spawn[0], c: spawn[1], booster: 'rocket', type: h.type });
+        }
+      });
+
+      vLines.forEach((v, vi) => {
+        v.cells.forEach(([r, c]) => matched.add(`${r},${c}`));
+        if (!usedV.has(vi)) {
+          const spawn = v.cells.find(([r, c]) => r === pivotR && c === pivotC) || v.cells[1];
+          if (v.len >= 5) boostersToCreate.push({ r: spawn[0], c: spawn[1], booster: 'plasma', type: v.type });
+          else if (v.len === 4) boostersToCreate.push({ r: spawn[0], c: spawn[1], booster: 'rocket', type: v.type });
+        }
+      });
+
+      return { matched, boostersToCreate };
+    }
+
+    async function resolveMatches({ matched, boostersToCreate }) {
+      const obstacleHits = new Set();
+      matched.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        [[r-1, c], [r+1, c], [r, c-1], [r, c+1]].forEach(([pr, pc]) => {
+          if (pr >= 0 && pr < SIZE && pc >= 0 && pc < SIZE && board[pr][pc]?.obstacle) {
+            obstacleHits.add(`${pr},${pc}`);
+          }
+        });
+        const item = board[r][c];
+        if (item) {
+          if (item.obstacle) obstacleHits.add(`${r},${c}`);
+          else { collectItem(item.type); board[r][c] = null; }
+        }
+      });
+
+      obstacleHits.forEach(key => {
+        const [r, c] = key.split(',').map(Number);
+        const obs = board[r][c]?.obstacle;
+        if (obs === 'oil') board[r][c].obstacle = null;
+        else if (obs === 'crate2') board[r][c].obstacle = 'crate1';
+        else if (obs === 'crate1') board[r][c].obstacle = null;
+      });
+
+      boostersToCreate.forEach(b => {
+        board[b.r][b.c] = { type: b.type, booster: b.booster, obstacle: null, justSpawned: true };
+      });
+
+      updateUI();
+      renderBoard();
+      await sleep(220);
+    }
+
+    async function cascadeLoop() {
+      while (true) {
+        let moved = false;
+        for (let c = 0; c < SIZE; c++) {
+          for (let r = SIZE - 1; r > 0; r--) {
+            if (!board[r][c] && board[r - 1][c] && !board[r-1][c].obstacle) {
+              board[r][c] = board[r - 1][c];
+              board[r - 1][c] = null;
+              moved = true;
+            }
+          }
+        }
+
+        for (let i = 0; i < 3; i++) {
+          const inCol = i, outCol = 5 + i;
+          if (!board[0][outCol] && board[SIZE - 1][inCol] && !board[SIZE - 1][inCol].obstacle) {
+            board[0][outCol] = { ...board[SIZE - 1][inCol], justSpawned: true };
+            board[SIZE - 1][inCol] = null;
+            moved = true;
+          }
+        }
+
+        for (let c = 0; c < SIZE; c++) {
+          if (!board[0][c]) {
+            board[0][c] = { type: randomType(), booster: null, obstacle: null, justSpawned: true };
+            moved = true;
+          }
+        }
+
+        if (moved) {
+          renderBoard();
+          await sleep(140);
+          continue;
+        }
+
+        const nextMatches = findMatches();
+        if (nextMatches.matched.size > 0) {
+          await resolveMatches(nextMatches);
+        } else {
+          break;
+        }
+      }
+    }
+
+    async function triggerBooster(r, c, booster, skipCascade = false) {
+      isBusy = true;
+      tgHaptic('medium');
+      board[r][c] = null;
+
+      if (booster === 'rocket') {
+        for (let i = 0; i < SIZE; i++) { clearCell(r, i, true); clearCell(i, c, true); }
+      } else if (booster === 'nos') {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) clearCell(r + dr, c + dc, true);
+        }
+      } else if (booster === 'turbo') {
+        [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].forEach(([rr, cc]) => clearCell(rr, cc, true));
+        const targetPos = findGoalCell();
+        if (targetPos) clearCell(targetPos.r, targetPos.c, true);
+      }
+
+      updateUI();
+      renderBoard();
+      await sleep(240);
+
+      if (!skipCascade) {
+        await cascadeLoop();
+        isBusy = false;
+        checkWin();
+      }
+    }
+
+    async function activatePlasma(r, c, targetType) {
+      board[r][c] = null;
+      for (let rr = 0; rr < SIZE; rr++) {
+        for (let cc = 0; cc < SIZE; cc++) {
+          if (board[rr][cc]?.type === targetType) clearCell(rr, cc, true);
+        }
+      }
+      updateUI();
+      renderBoard();
+      await sleep(260);
+    }
+
+    function findGoalCell() {
+      const neededTypes = Object.keys(targets).filter(k => targets[k] > 0);
+      for (let r = 0; r < SIZE; r++) {
+        for (let c = 0; c < SIZE; c++) {
+          if (board[r][c] && neededTypes.includes(board[r][c].type)) return { r, c };
+        }
+      }
+      return { r: Math.floor(Math.random() * SIZE), c: Math.floor(Math.random() * SIZE) };
+    }
+
+    function clearCell(r, c, destroyObstacle = false) {
+      if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return;
+      const item = board[r][c];
+      if (!item) return;
+      if (item.obstacle) {
+        if (destroyObstacle) item.obstacle = null;
+        else {
+          if (item.obstacle === 'crate2') item.obstacle = 'crate1';
+          else item.obstacle = null;
+        }
+        return;
+      }
+      collectItem(item.type);
+      board[r][c] = null;
+    }
+
+    function collectItem(type) {
+      coins += 2;
+      if (targets[type] !== undefined && targets[type] > 0) targets[type]--;
+    }
+
+    function activateTool(toolName) {
+      if (tools[toolName] <= 0 || isBusy) return;
+      tgHaptic('light');
+      if (toolName === 'shuffle') {
+        tools.shuffle--;
+        for (let r = 0; r < SIZE; r++) {
+          for (let c = 0; c < SIZE; c++) {
+            swap(r, c, Math.floor(Math.random() * SIZE), Math.floor(Math.random() * SIZE));
+          }
+        }
+        renderBoard();
+        updateUI();
+        return;
+      }
+      activeTool = activeTool === toolName ? null : toolName;
+      updateUI();
+    }
+
+    async function useToolOn(r, c) {
+      isBusy = true;
+      tgHaptic('medium');
+      const tool = activeTool;
+      activeTool = null;
+      tools[tool]--;
+
+      if (tool === 'hammer') clearCell(r, c, true);
+      else if (tool === 'wrench') {
+        for (let i = 0; i < SIZE; i++) { clearCell(r, i, true); clearCell(i, c, true); }
+      }
+
+      updateUI();
+      renderBoard();
+      await sleep(220);
+      await cascadeLoop();
+      isBusy = false;
+      checkWin();
+    }
+
+    function updateUI() {
+      document.getElementById('moves-count').innerText = moves;
+      document.getElementById('coins-val').innerText = coins;
+      document.getElementById('stars-val').innerText = stars;
+      document.getElementById('header-lvl').innerText = currentLevel;
+      document.getElementById('play-btn-lvl').innerText = `УРОВЕНЬ ${currentLevel} ▶`;
+      document.getElementById('target-val-0').innerText = targets.gear === 0 ? '✔' : targets.gear;
+      document.getElementById('target-val-1').innerText = targets.tire === 0 ? '✔' : targets.tire;
+
+      ['hammer', 'wrench', 'shuffle'].forEach(t => {
+        document.getElementById(`cnt-${t}`).innerText = tools[t];
+        document.getElementById(`btn-${t}`).classList.toggle('active-tool', activeTool === t);
+      });
+      saveGameProgress();
+    }
+
+    function checkWin() {
+      if (targets.gear === 0 && targets.tire === 0) {
+        stars += 1;
+        coins += 75;
+        currentLevel++;
+        tgHaptic('success');
+        updateUI();
+        const modal = document.getElementById('win-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      } else if (moves <= 0) {
+        moves = 5;
+        showToast('Ходы закончились! Бонус +5 ходов.');
+        updateUI();
+      }
+    }
+
+    function winToGarage() {
+      resetMatch3State();
+      switchToGarage();
+    }
+
+    function nextLevel() {
+      resetMatch3State();
+    }
+
+    function resetMatch3State() {
+      const modal = document.getElementById('win-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+      moves = 24;
+      targets = { gear: 12 + currentLevel * 2, tire: 10 + currentLevel * 2 };
+      createBoard();
+      renderBoard();
+      updateUI();
+    }
+
+    function sleep(ms) {
+      return new Promise(res => setTimeout(res, ms));
+    }
+
+    initGame();
+  </script>
+</body>
+</html>
