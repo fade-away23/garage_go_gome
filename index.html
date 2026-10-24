@@ -7,6 +7,8 @@
   <!-- Официальный Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js для полноценного 3D-гаража 360° и осмотра салона -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@600;700;800;900&display=swap');
 
@@ -21,7 +23,7 @@
       width: 100%;
       height: 100dvh;
       font-family: 'Rubik', sans-serif;
-      background: #0f121d;
+      background: #0b0e17;
       user-select: none;
       -webkit-user-select: none;
       touch-action: none;
@@ -29,59 +31,45 @@
     }
 
     .glass-capsule {
-      background: linear-gradient(180deg, rgba(45, 58, 92, 0.92) 0%, rgba(19, 25, 43, 0.96) 100%);
-      border: 2px solid rgba(255, 215, 0, 0.45);
-      box-shadow: 0 6px 15px rgba(0,0,0,0.6), inset 0 2px 3px rgba(255,255,255,0.25);
+      background: linear-gradient(180deg, rgba(40, 52, 85, 0.92) 0%, rgba(16, 21, 38, 0.96) 100%);
+      border: 2px solid rgba(255, 210, 60, 0.45);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.65), inset 0 2px 3px rgba(255,255,255,0.28);
     }
 
     .garage-bg {
-      background:
-        radial-gradient(circle at 50% 22%, rgba(251, 191, 36, 0.22) 0%, transparent 45%),
-        radial-gradient(circle at 50% 52%, #3b2d27 0%, #1e181a 60%, #0d0b10 100%);
+      background: radial-gradient(circle at 50% 35%, #2a2024 0%, #12131c 70%, #090a10 100%);
       position: relative;
     }
 
-    .garage-floor {
-      background: repeating-linear-gradient(
-        90deg,
-        rgba(255,255,255,0.03) 0px,
-        rgba(255,255,255,0.03) 36px,
-        rgba(0,0,0,0.25) 36px,
-        rgba(0,0,0,0.25) 38px
-      ), linear-gradient(180deg, #1b202b 0%, #0f131a 100%);
-      border-top: 3px solid #f59e0b;
-      box-shadow: 0 -10px 25px rgba(0,0,0,0.8);
-    }
-
     .car-pin {
-      width: 46px;
-      height: 46px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.7), 0 0 0 3px rgba(255,255,255,0.25), inset 0 3px 5px rgba(255,255,255,0.65);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.75), 0 0 0 3px rgba(255,255,255,0.3), inset 0 3px 5px rgba(255,255,255,0.7);
       animation: float-pin 2.2s ease-in-out infinite;
-      transition: transform 0.15s;
-      z-index: 20;
+      transition: transform 0.15s, background 0.2s;
+      z-index: 25;
     }
-    .car-pin:active { transform: scale(0.88); }
+    .car-pin:active { transform: scale(0.86); }
 
     @keyframes float-pin {
       0%, 100% { transform: translateY(0px) scale(1); }
-      50% { transform: translateY(-6px) scale(1.06); }
+      50% { transform: translateY(-5px) scale(1.06); }
     }
 
     .btn-play-3d {
-      background: linear-gradient(180deg, #ffaa00 0%, #ff5e00 55%, #d63200 100%);
-      border: 3px solid #ffea8a;
-      box-shadow: 0 6px 0 #7c1d00, 0 10px 20px rgba(0,0,0,0.65), inset 0 3px 6px rgba(255,255,255,0.65);
-      transition: all 0.1s;
+      background: linear-gradient(180deg, #ffbb00 0%, #ff6200 55%, #cc2900 100%);
+      border: 3px solid #fff099;
+      box-shadow: 0 6px 0 #7a1800, 0 12px 24px rgba(0,0,0,0.7), inset 0 3px 6px rgba(255,255,255,0.7);
+      transition: all 0.12s;
     }
     .btn-play-3d:active {
       transform: translateY(4px);
-      box-shadow: 0 2px 0 #7c1d00, 0 5px 10px rgba(0,0,0,0.6);
+      box-shadow: 0 2px 0 #7a1800, 0 5px 10px rgba(0,0,0,0.6);
     }
 
     .tablet-frame {
@@ -96,20 +84,32 @@
     }
 
     .workbench {
-      background: linear-gradient(160deg, #475569 0%, #273244 50%, #1e2533 100%);
-      border: 3px solid #94a3b8;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.8), inset 0 3px 6px rgba(255,255,255,0.35);
+      background: linear-gradient(160deg, #3b465e 0%, #202838 55%, #151b26 100%);
+      border: 3px solid #64748b;
+      box-shadow: 0 14px 35px rgba(0,0,0,0.85), inset 0 3px 6px rgba(255,255,255,0.28);
       position: relative;
       width: 100%;
-      max-width: min(94vw, 390px);
+      max-width: min(94vw, 392px);
       margin: 0 auto;
+      transition: transform 0.1s;
     }
+    .workbench.board-shake {
+      animation: board-shake-anim 0.28s ease-in-out;
+    }
+    @keyframes board-shake-anim {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-4px, 3px); }
+      40% { transform: translate(4px, -3px); }
+      60% { transform: translate(-3px, -2px); }
+      80% { transform: translate(3px, 2px); }
+    }
+
     .rivet {
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      background: radial-gradient(circle at 30% 30%, #e2e8f0, #475569);
-      box-shadow: 0 1px 2px rgba(0,0,0,0.85);
+      background: radial-gradient(circle at 30% 30%, #f1f5f9, #475569);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.9);
       position: absolute;
     }
 
@@ -117,11 +117,11 @@
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       gap: 4px;
-      background: #111622;
+      background: radial-gradient(circle at 50% 50%, #182032 0%, #0d121d 100%);
       padding: 6px;
-      border-radius: 16px;
-      border: 2px solid #0b0e17;
-      box-shadow: inset 0 6px 14px rgba(0,0,0,0.9);
+      border-radius: 18px;
+      border: 2px solid #080b12;
+      box-shadow: inset 0 8px 18px rgba(0,0,0,0.92);
       position: relative;
       width: 100%;
       aspect-ratio: 1 / 1;
@@ -130,9 +130,10 @@
 
     .cell {
       aspect-ratio: 1 / 1;
-      background: linear-gradient(180deg, #1d2436 0%, #161b29 100%);
-      border-radius: 9px;
-      border: 1px solid rgba(255,255,255,0.06);
+      background: linear-gradient(180deg, rgba(35, 45, 68, 0.75) 0%, rgba(20, 26, 42, 0.9) 100%);
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.05);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.45);
       position: relative;
       display: flex;
       align-items: center;
@@ -144,9 +145,9 @@
       box-shadow: 2px 0 6px rgba(251, 191, 36, 0.35);
     }
     .cell-oil {
-      background: radial-gradient(circle, #090d16 20%, #1e293b 85%);
+      background: radial-gradient(circle, #06090f 25%, #1e293b 85%);
       border: 2px dashed #64748b;
-      box-shadow: inset 0 0 8px #000;
+      box-shadow: inset 0 0 10px #000;
     }
     .cell-crate-1 {
       background: linear-gradient(135deg, #92400e, #78350f);
@@ -194,103 +195,63 @@
       50% { transform: scale(1.25); opacity: 1; }
     }
 
-    /* ОБЪЕМНЫЕ 3D-ФИШКИ В СТИЛЕ ТОПОВЫХ MATCH-3 */
+    /* СВОБОДНЫЕ 3D-СПРАЙТЫ ДЕТАЛЕЙ БЕЗ ПЛОСКИХ КВАДРАТОВ */
     .tile {
-      width: 92%;
-      height: 92%;
-      border-radius: 10px;
+      width: 96%;
+      height: 96%;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       position: relative;
-      transition: transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.15s ease;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.18s ease;
+      filter: drop-shadow(0 5px 5px rgba(0,0,0,0.65));
       z-index: 5;
-      padding: 3px;
       touch-action: none;
-    }
-    .tile::before {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 12%;
-      right: 12%;
-      height: 28%;
-      background: linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 100%);
-      border-radius: 999px;
-      pointer-events: none;
+      will-change: transform;
     }
 
-    .tile-piston {
-      background: linear-gradient(180deg, #ff6b6b 0%, #dc2626 100%);
-      border: 1.5px solid #fecaca;
-      box-shadow: 0 3px 0 #7f1d1d, 0 4px 6px rgba(0,0,0,0.5);
-    }
-    .tile-gear {
-      background: linear-gradient(180deg, #fde047 0%, #eab308 100%);
-      border: 1.5px solid #fef9c3;
-      box-shadow: 0 3px 0 #854d0e, 0 4px 6px rgba(0,0,0,0.5);
-    }
-    .tile-jerrycan {
-      background: linear-gradient(180deg, #fb923c 0%, #ea580c 100%);
-      border: 1.5px solid #fed7aa;
-      box-shadow: 0 3px 0 #7c2d12, 0 4px 6px rgba(0,0,0,0.5);
-    }
-    .tile-tire {
-      background: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
-      border: 1.5px solid #bbf7d0;
-      box-shadow: 0 3px 0 #14532d, 0 4px 6px rgba(0,0,0,0.5);
-    }
-    .tile-spark {
-      background: linear-gradient(180deg, #38bdf8 0%, #0284c7 100%);
-      border: 1.5px solid #bae6fd;
-      box-shadow: 0 3px 0 #0c4a6e, 0 4px 6px rgba(0,0,0,0.5);
-    }
-    .tile-battery {
-      background: linear-gradient(180deg, #c084fc 0%, #9333ea 100%);
-      border: 1.5px solid #e9d5ff;
-      box-shadow: 0 3px 0 #581c87, 0 4px 6px rgba(0,0,0,0.5);
-    }
     .tile-booster {
-      background: radial-gradient(circle, #fef08a 0%, #f59e0b 65%, #b45309 100%);
-      border: 2px solid #ffffff;
-      box-shadow: 0 3px 0 #78350f, 0 0 12px rgba(251, 191, 36, 0.85);
-      animation: pulse-booster 1.2s infinite ease-in-out;
+      filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8)) drop-shadow(0 5px 5px rgba(0,0,0,0.7));
+      animation: pulse-booster 1.3s infinite ease-in-out;
     }
 
     @keyframes pulse-booster {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.06); }
+      50% { transform: scale(1.08); }
     }
 
     .tile.selected {
-      transform: scale(1.18) translateY(-2px);
-      box-shadow: 0 0 0 3px #ffffff, 0 0 16px #38bdf8;
-      z-index: 25;
+      transform: scale(1.22) translateY(-3px);
+      filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.95)) drop-shadow(0 6px 8px rgba(56, 189, 248, 0.8));
+      z-index: 30;
     }
 
     .tile-spawn {
-      animation: drop-in 0.24s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: spring-drop 0.36s cubic-bezier(0.34, 1.65, 0.64, 1);
     }
-    @keyframes drop-in {
-      0% { transform: translateY(-22px) scale(0.65); opacity: 0; }
+    @keyframes spring-drop {
+      0% { transform: translateY(-32px) scale(0.55); opacity: 0; }
+      65% { transform: translateY(3px) scale(1.06, 0.94); opacity: 1; }
       100% { transform: translateY(0) scale(1); opacity: 1; }
     }
 
     .tile-shake {
-      animation: shake-anim 0.28s ease-in-out;
+      animation: shake-anim 0.32s cubic-bezier(0.36, 0.07, 0.19, 0.97);
     }
     @keyframes shake-anim {
       0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
+      20% { transform: translateX(-6px) rotate(-5deg); }
+      40% { transform: translateX(6px) rotate(5deg); }
+      60% { transform: translateX(-4px) rotate(-3deg); }
+      80% { transform: translateX(4px) rotate(3deg); }
     }
 
     .tool-btn {
       background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
       border: 2px solid #93c5fd;
-      box-shadow: 0 5px 0 #1e3a8a, 0 6px 12px rgba(0,0,0,0.55), inset 0 2px 3px rgba(255,255,255,0.4);
-      transition: all 0.1s;
+      box-shadow: 0 5px 0 #1e3a8a, 0 8px 14px rgba(0,0,0,0.6), inset 0 2px 3px rgba(255,255,255,0.45);
+      transition: all 0.12s;
     }
     .tool-btn:active {
       transform: translateY(3px);
@@ -299,13 +260,26 @@
     .tool-btn.active-tool {
       background: linear-gradient(180deg, #f59e0b 0%, #b45309 100%);
       border-color: #fde68a;
-      box-shadow: 0 0 16px #f59e0b;
+      box-shadow: 0 0 18px #f59e0b;
+    }
+
+    .fly-item {
+      position: fixed;
+      width: 38px;
+      height: 38px;
+      pointer-events: none;
+      z-index: 100;
+      transition: transform 0.58s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.58s ease;
+      filter: drop-shadow(0 0 10px rgba(255,255,255,0.8));
     }
   </style>
 </head>
 <body class="flex flex-col justify-between text-white select-none">
 
-  <!-- ВЕРХНЯЯ ПАНЕЛЬ С ДАННЫМИ TELEGRAM -->
+  <!-- СЛОЙ ЛЕТЯЩИХ ЧАСТИЦ И НАГРАД (JUICINESS FX) -->
+  <canvas id="fx-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ С 3D-ВАЛЮТОЙ И ЗВУКОМ -->
   <header class="w-full max-w-md mx-auto flex items-center justify-between px-3 pt-2 pb-1 z-30 shrink-0">
     <div class="flex items-center gap-2">
       <div id="tg-avatar-wrap" class="w-11 h-11 rounded-full bg-gradient-to-b from-cyan-400 to-blue-600 p-0.5 shadow-lg flex items-center justify-center border-2 border-cyan-200 relative overflow-hidden">
@@ -314,34 +288,59 @@
       </div>
       <div class="flex flex-col">
         <span id="tg-username" class="text-xs font-black text-amber-200 leading-tight">Механик</span>
-        <span class="text-[9px] text-slate-400">Garage Go! TMA</span>
+        <span class="text-[9px] text-slate-400">Garage Go! 3D</span>
       </div>
     </div>
+
     <div class="flex items-center gap-1.5">
+      <!-- 3D Топливо -->
       <div class="glass-capsule px-2.5 py-1 rounded-full flex items-center gap-1">
-        <span class="text-sm">⛽</span>
+        <svg viewBox="0 0 32 32" class="w-4 h-4 drop-shadow">
+          <defs><linearGradient id="fG" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#ff7b00"/><stop offset="100%" stop-color="#b91c1c"/></linearGradient></defs>
+          <rect x="6" y="7" width="20" height="21" rx="4" fill="url(#fG)" stroke="#fde047" stroke-width="1.5"/>
+          <rect x="9" y="3" width="6" height="4" rx="1" fill="#fde047"/>
+          <path d="M16 12 C16 12 12 17 12 20 A4 4 0 0 0 20 20 C20 17 16 12 16 12 Z" fill="#fef08a"/>
+        </svg>
         <span class="text-xs font-black text-emerald-400">5/5</span>
       </div>
-      <div class="glass-capsule px-2.5 py-1 rounded-full flex items-center gap-1">
-        <span class="text-sm">🪙</span>
+
+      <!-- 3D Монеты -->
+      <div id="hud-coins-box" class="glass-capsule px-2.5 py-1 rounded-full flex items-center gap-1 transition-transform">
+        <svg viewBox="0 0 32 32" class="w-4 h-4 drop-shadow">
+          <defs><radialGradient id="cG" cx="35%" cy="30%" r="70%"><stop offset="0%" stop-color="#fef9c3"/><stop offset="45%" stop-color="#facc15"/><stop offset="100%" stop-color="#b45309"/></radialGradient></defs>
+          <circle cx="16" cy="16" r="13" fill="url(#cG)" stroke="#fef08a" stroke-width="1.5"/>
+          <circle cx="16" cy="16" r="9" fill="none" stroke="#92400e" stroke-width="1.5" stroke-dasharray="3 2"/>
+          <text x="16" y="20" font-size="11" font-weight="900" text-anchor="middle" fill="#78350f">$</text>
+        </svg>
         <span id="coins-val" class="text-xs font-black text-amber-300">250</span>
       </div>
-      <div class="glass-capsule px-2.5 py-1 rounded-full flex items-center gap-1">
-        <span class="text-sm">⭐</span>
+
+      <!-- 3D Звезды -->
+      <div id="hud-stars-box" class="glass-capsule px-2.5 py-1 rounded-full flex items-center gap-1 transition-transform">
+        <svg viewBox="0 0 32 32" class="w-4 h-4 drop-shadow">
+          <defs><linearGradient id="sG" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fef08a"/><stop offset="55%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#b45309"/></linearGradient></defs>
+          <polygon points="16,2 20,11 30,12 23,19 25,29 16,24 7,29 9,19 2,12 12,11" fill="url(#sG)" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
         <span id="stars-val" class="text-xs font-black text-sky-300">3</span>
       </div>
+
+      <!-- Переключатель звука -->
+      <button onclick="toggleSound()" id="sound-btn" class="glass-capsule w-8 h-8 rounded-full flex items-center justify-center text-xs active:scale-90 transition">
+        🔊
+      </button>
     </div>
   </header>
 
-  <!-- ЭКРАН 1: ГАРАЖ -->
+  <!-- ЭКРАН 1: ИНТЕРАКТИВНЫЙ 3D-ГАРАЖ 360° -->
   <div id="garage-screen" class="garage-bg flex-1 flex flex-col justify-between w-full h-full absolute inset-0 pt-14 pb-3 px-3 z-10 overflow-hidden">
-    <!-- Декоративный пол гаража -->
-    <div class="garage-floor absolute bottom-0 left-0 right-0 h-36 pointer-events-none"></div>
+    
+    <!-- 3D WebGL Сцена Гаража -->
+    <div id="garage-3d-viewport" class="absolute inset-0 w-full h-full z-0 cursor-grab active:cursor-grabbing"></div>
 
-    <!-- Прогресс проекта -->
-    <div class="w-full max-w-md mx-auto flex items-center justify-between z-20 mt-1">
-      <div class="bg-slate-900/80 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-amber-400/30 shadow-lg">
-        <div class="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">Проект #1: Пикап Деда</div>
+    <!-- Прогресс проекта и Задачи -->
+    <div class="w-full max-w-md mx-auto flex items-center justify-between z-20 mt-1 pointer-events-auto">
+      <div class="bg-slate-900/85 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-amber-400/35 shadow-lg">
+        <div class="text-[10px] text-amber-300 font-extrabold uppercase tracking-wider">Проект #1: Пикап Деда 3D</div>
         <div class="flex items-center gap-2 mt-1">
           <div class="w-28 h-2.5 bg-slate-800 rounded-full overflow-hidden border border-white/20">
             <div id="garage-progress-bar" class="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-500" style="width: 0%"></div>
@@ -350,109 +349,43 @@
         </div>
       </div>
       <button onclick="openTablet()" class="glass-capsule px-3.5 py-2 rounded-2xl text-xs font-bold text-amber-200 flex items-center gap-1.5 active:scale-95 transition">
-        <span>📋</span> Задачи <span id="badge-tasks" class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">3</span>
+        <span>📋</span> Задачи <span id="badge-tasks" class="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-black">4</span>
       </button>
     </div>
 
-    <!-- ПИКАП НА ПОДЪЕМНИКЕ -->
-    <div class="relative w-full max-w-md mx-auto my-auto h-64 flex items-center justify-center z-10">
-      <!-- Неоновая вывеска на стене гаража -->
-      <div class="absolute top-0 left-1/2 -translate-x-1/2 px-4 py-1 rounded-xl border border-amber-500/40 bg-black/40 text-amber-400/90 font-black text-xs tracking-widest uppercase shadow-[0_0_20px_rgba(245,158,11,0.3)] pointer-events-none">
-        ★ CUSTOM GARAGE ★
+    <!-- Панель управления 3D-камерой (360° / В салон / Завести мотор) -->
+    <div class="w-full max-w-md mx-auto flex items-center justify-between z-20 mt-1.5 pointer-events-auto">
+      <div class="bg-black/55 backdrop-blur-md px-3 py-1 rounded-full border border-white/15 text-[10px] font-bold text-amber-200 flex items-center gap-1.5">
+        <span>🔄</span> Крути пикап пальцем на 360°
       </div>
-
-      <!-- Пины кастомизации -->
-      <div id="pin-engine" onclick="startTaskCustomization('engine')" class="car-pin bg-gradient-to-b from-amber-300 to-orange-500 border-2 border-yellow-100 absolute top-10 left-14">
-        <span class="text-2xl">⚙️</span>
+      <div class="flex gap-1.5">
+        <button id="btn-interior-cam" onclick="toggleInteriorView()" class="glass-capsule px-3 py-1 rounded-full text-[11px] font-black text-cyan-200 flex items-center gap-1 active:scale-95 transition">
+          <span>👁️</span> В салон
+        </button>
+        <button onclick="revEngine()" class="glass-capsule px-3 py-1 rounded-full text-[11px] font-black text-orange-300 flex items-center gap-1 active:scale-95 transition">
+          <span>🔥</span> V8 Старт
+        </button>
       </div>
-      <div id="pin-paint" onclick="startTaskCustomization('paint')" class="car-pin bg-gradient-to-b from-fuchsia-400 to-purple-600 border-2 border-pink-100 absolute top-8 right-14">
-        <span class="text-2xl">🎨</span>
+    </div>
+
+    <!-- ЦЕНТРАЛЬНАЯ ОБЛАСТЬ С 3D-ПИНАМИ НА МАШИНЕ -->
+    <div class="relative w-full max-w-md mx-auto my-auto flex-1 pointer-events-none z-20">
+      <div id="pin-engine" onclick="startTaskCustomization('engine')" class="car-pin pointer-events-auto bg-gradient-to-b from-amber-300 to-orange-500 border-2 border-yellow-100 absolute top-1/3 left-10">
+        <span class="text-xl">⚙️</span>
       </div>
-      <div id="pin-wheels" onclick="startTaskCustomization('wheels')" class="car-pin bg-gradient-to-b from-sky-400 to-blue-600 border-2 border-sky-100 absolute bottom-2 left-1/2 -translate-x-1/2">
-        <span class="text-2xl">🛞</span>
+      <div id="pin-paint" onclick="startTaskCustomization('paint')" class="car-pin pointer-events-auto bg-gradient-to-b from-fuchsia-400 to-purple-600 border-2 border-pink-100 absolute top-1/4 right-10">
+        <span class="text-xl">🎨</span>
       </div>
-
-      <!-- Детализированный SVG Пикапа -->
-      <svg id="pickup-svg" viewBox="0 0 440 230" class="w-full h-full drop-shadow-[0_18px_16px_rgba(0,0,0,0.85)] transition-transform duration-300">
-        <defs>
-          <linearGradient id="liftGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#3b82f6"/>
-            <stop offset="100%" stop-color="#1d4ed8"/>
-          </linearGradient>
-          <linearGradient id="glassGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stop-color="#bae6fd" stop-opacity="0.85"/>
-            <stop offset="50%" stop-color="#0284c7" stop-opacity="0.75"/>
-            <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9"/>
-          </linearGradient>
-          <linearGradient id="chromeGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#ffffff"/>
-            <stop offset="50%" stop-color="#94a3b8"/>
-            <stop offset="100%" stop-color="#cbd5e1"/>
-          </linearGradient>
-        </defs>
-
-        <!-- Тень под машиной -->
-        <ellipse cx="220" cy="198" rx="165" ry="14" fill="rgba(0,0,0,0.65)"/>
-
-        <!-- Стойки подъемника -->
-        <rect x="65" y="190" width="310" height="10" rx="5" fill="url(#liftGrad)" stroke="#93c5fd" stroke-width="1.5"/>
-        <rect x="204" y="135" width="32" height="60" fill="url(#liftGrad)" stroke="#60a5fa" stroke-width="2"/>
-        <rect x="115" y="162" width="210" height="10" rx="4" fill="#f59e0b" stroke="#fde047" stroke-width="2"/>
-
-        <!-- Слой двигателя -->
-        <g id="car-engine-layer">
-          <rect x="92" y="92" width="52" height="34" rx="6" fill="#57534e" stroke="#1c1917" stroke-width="3"/>
-          <circle cx="118" cy="88" r="11" fill="#44403c" stroke="#1c1917" stroke-width="2"/>
-        </g>
-
-        <!-- Слой кузова пикапа -->
-        <g id="car-body-layer">
-          <!-- Основной кузов -->
-          <path id="pickup-main-paint" d="M 55 132 Q 55 96 95 94 L 155 92 L 184 48 Q 190 42 200 42 L 268 42 Q 276 42 278 52 L 284 96 L 380 96 Q 392 96 392 108 L 392 146 Q 392 154 382 154 L 62 154 Q 55 154 55 144 Z" fill="#64748b" stroke="#1e293b" stroke-width="4" stroke-linejoin="round"/>
-
-          <!-- Световые блики кузова -->
-          <path d="M 65 104 L 382 104" stroke="rgba(255,255,255,0.35)" stroke-width="3" stroke-linecap="round"/>
-
-          <!-- Лобовое и боковое окно -->
-          <path d="M 190 52 L 266 52 L 272 92 L 166 92 Z" fill="url(#glassGrad)" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/>
-          <line x1="226" y1="52" x2="226" y2="92" stroke="#1e293b" stroke-width="3"/>
-
-          <!-- Пятна ржавчины (до покраски) -->
-          <g id="rust-patches">
-            <ellipse cx="125" cy="126" rx="22" ry="9" fill="#9a3412" opacity="0.8"/>
-            <ellipse cx="235" cy="132" rx="28" ry="11" fill="#7c2d12" opacity="0.8"/>
-            <circle cx="330" cy="120" r="14" fill="#9a3412" opacity="0.75"/>
-          </g>
-
-          <!-- Декали для разных стилей -->
-          <path id="hotrod-flames" class="hidden" d="M 58 138 C 110 112, 135 142, 185 118 C 155 144, 210 146, 250 135 L 58 148 Z" fill="#f97316" stroke="#fde047" stroke-width="2"/>
-          <rect id="sport-stripes" class="hidden" x="195" y="44" width="22" height="108" fill="#38bdf8" opacity="0.9"/>
-
-          <!-- Хромированные бамперы, решетка и фара -->
-          <rect x="44" y="132" width="24" height="20" rx="6" fill="url(#chromeGrad)" stroke="#1e293b" stroke-width="2.5"/>
-          <rect x="376" y="134" width="22" height="18" rx="5" fill="url(#chromeGrad)" stroke="#1e293b" stroke-width="2.5"/>
-          <circle cx="66" cy="115" r="10" fill="#fef08a" stroke="#ca8a04" stroke-width="3"/>
-          <rect x="384" y="106" width="8" height="20" rx="3" fill="#ef4444" stroke="#7f1d1d" stroke-width="2"/>
-          <!-- Ручка двери -->
-          <rect x="242" y="108" width="16" height="5" rx="2" fill="url(#chromeGrad)" stroke="#0f172a" stroke-width="1"/>
-        </g>
-
-        <!-- Арки колес -->
-        <path d="M 80 154 A 42 42 0 0 1 164 154 Z" fill="#090d16"/>
-        <path d="M 278 154 A 42 42 0 0 1 362 154 Z" fill="#090d16"/>
-
-        <!-- Слой колес -->
-        <g id="car-wheels-layer">
-          <circle cx="122" cy="154" r="32" fill="#334155" stroke="#0f172a" stroke-width="5"/>
-          <circle cx="122" cy="154" r="15" fill="#94a3b8" stroke="#1e293b" stroke-width="3"/>
-          <circle cx="320" cy="154" r="24" fill="#475569" stroke="#1e293b" stroke-width="4" stroke-dasharray="7 4"/>
-          <circle cx="320" cy="154" r="10" fill="#9a3412"/>
-        </g>
-      </svg>
+      <div id="pin-interior" onclick="startTaskCustomization('interior')" class="car-pin pointer-events-auto bg-gradient-to-b from-emerald-400 to-teal-600 border-2 border-emerald-100 absolute top-12 left-1/2 -translate-x-1/2">
+        <span class="text-xl">💺</span>
+      </div>
+      <div id="pin-wheels" onclick="startTaskCustomization('wheels')" class="car-pin pointer-events-auto bg-gradient-to-b from-sky-400 to-blue-600 border-2 border-sky-100 absolute bottom-6 left-1/2 -translate-x-1/2">
+        <span class="text-xl">🛞</span>
+      </div>
     </div>
 
     <!-- ОКНО ПРИМЕРКИ СТИЛЕЙ -->
-    <div id="chooser-panel" class="hidden w-full max-w-md mx-auto glass-capsule rounded-3xl p-3 border-2 border-amber-300 z-30 mb-2">
+    <div id="chooser-panel" class="hidden w-full max-w-md mx-auto glass-capsule rounded-3xl p-3 border-2 border-amber-300 z-30 mb-2 pointer-events-auto">
       <div class="flex items-center justify-between mb-2 px-1">
         <span id="chooser-title" class="text-xs font-black uppercase text-amber-300 tracking-wider">Выберите стиль:</span>
         <div class="flex gap-2">
@@ -477,22 +410,22 @@
     </div>
 
     <!-- НИЖНИЙ НАВИГАЦИОННЫЙ ДОК -->
-    <div class="w-full max-w-md mx-auto flex items-center justify-between gap-3 z-20">
+    <div class="w-full max-w-md mx-auto flex items-center justify-between gap-3 z-20 pointer-events-auto">
       <div class="glass-capsule flex-1 rounded-3xl py-2 px-3 flex items-center justify-around">
         <button onclick="openTablet()" class="flex flex-col items-center active:scale-95 transition">
           <span class="text-2xl">📱</span>
           <span class="text-[10px] font-bold text-amber-200 mt-0.5">Планшет</span>
         </button>
-        <button onclick="tgHaptic('selection'); showToast('Кланы откроются на 5 уровне!')" class="flex flex-col items-center opacity-85 active:scale-95 transition">
-          <span class="text-2xl">🛡️</span>
-          <span class="text-[10px] font-bold text-slate-300 mt-0.5">Кланы</span>
+        <button onclick="toggleInteriorView()" class="flex flex-col items-center active:scale-95 transition">
+          <span class="text-2xl">🛞</span>
+          <span class="text-[10px] font-bold text-cyan-200 mt-0.5">Салон 3D</span>
         </button>
-        <button onclick="tgHaptic('selection'); showToast('Детали можно перекрашивать прямо на машине!')" class="flex flex-col items-center opacity-85 active:scale-95 transition">
-          <span class="text-2xl">🏆</span>
-          <span class="text-[10px] font-bold text-slate-300 mt-0.5">Рейтинг</span>
+        <button onclick="revEngine()" class="flex flex-col items-center active:scale-95 transition">
+          <span class="text-2xl">🔊</span>
+          <span class="text-[10px] font-bold text-orange-200 mt-0.5">Выхлоп</span>
         </button>
       </div>
-      <button onclick="switchToMatch3()" class="btn-play-3d px-6 py-3 rounded-3xl flex flex-col items-center justify-center min-w-[142px]">
+      <button onclick="switchToMatch3()" class="btn-play-3d px-6 py-3 rounded-3xl flex flex-col items-center justify-center min-w-[144px]">
         <span class="text-xl font-black tracking-wide text-white drop-shadow">ИГРАТЬ!</span>
         <span id="play-btn-lvl" class="text-[11px] font-bold text-amber-100 uppercase">УРОВЕНЬ 1 ▶</span>
       </button>
@@ -506,8 +439,8 @@
       <div class="tablet-screen rounded-2xl p-4 text-slate-900">
         <div class="flex items-center justify-between border-b-2 border-amber-700/20 pb-3 mb-3">
           <div>
-            <h2 class="text-lg font-black text-amber-950 uppercase leading-none">ДЕНЬ 1: ЗАПУСК МОТОРА</h2>
-            <p class="text-xs font-bold text-amber-800 mt-0.5">Восстановите дедушкин пикап</p>
+            <h2 class="text-lg font-black text-amber-950 uppercase leading-none">ДЕНЬ 1: ПРОЕКТ ПИКАП</h2>
+            <p class="text-xs font-bold text-amber-800 mt-0.5">Полная реставрация кузова и салона</p>
           </div>
           <div class="flex items-center gap-2 bg-amber-950/15 px-3 py-1.5 rounded-xl">
             <span id="tablet-prog-txt" class="text-sm font-black text-amber-900">0%</span>
@@ -517,14 +450,14 @@
         <div id="tablet-tasks-list" class="space-y-2.5 max-h-72 overflow-y-auto pr-1"></div>
         <div class="grid grid-cols-3 gap-2 mt-4 pt-2 border-t-2 border-amber-700/20 text-center text-xs font-black">
           <div class="bg-amber-500 text-white py-1.5 rounded-xl shadow">📋 ЗАДАЧИ</div>
-          <div onclick="showToast('В ленте механик публикует фото проекта!')" class="bg-amber-900/15 text-amber-900 py-1.5 rounded-xl cursor-pointer">📰 ЛЕНТА</div>
+          <div onclick="closeTablet(); toggleInteriorView()" class="bg-amber-900/15 text-amber-900 py-1.5 rounded-xl cursor-pointer">💺 В САЛОН</div>
           <div onclick="closeTablet()" class="bg-amber-900/15 text-amber-900 py-1.5 rounded-xl cursor-pointer">🏠 ГАРАЖ</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- MATCH-3 ВЕРСТАК -->
+  <!-- ЭКРАН 2: MATCH-3 ВЕРСТАК -->
   <div id="match3-screen" class="hidden flex-1 flex flex-col items-center justify-between w-full max-w-md mx-auto px-3 pb-2 z-20 overflow-hidden">
     <!-- Панель целей и ходов -->
     <section class="w-full glass-capsule rounded-2xl p-2 flex items-center justify-between shrink-0">
@@ -536,11 +469,11 @@
         <span id="moves-count" class="text-xl font-black text-white leading-tight">24</span>
       </div>
       <div class="flex items-center gap-1.5">
-        <div class="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1.5 rounded-xl border border-amber-400/30">
+        <div id="goal-box-0" class="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1.5 rounded-xl border border-amber-400/35 transition-transform">
           <span id="target-icon-0" class="w-6 h-6 inline-block"></span>
           <span id="target-val-0" class="text-sm font-black text-amber-400">12</span>
         </div>
-        <div class="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1.5 rounded-xl border border-emerald-400/30">
+        <div id="goal-box-1" class="flex items-center gap-1.5 bg-slate-900/90 px-2.5 py-1.5 rounded-xl border border-emerald-400/35 transition-transform">
           <span id="target-icon-1" class="w-6 h-6 inline-block"></span>
           <span id="target-val-1" class="text-sm font-black text-emerald-400">10</span>
         </div>
@@ -549,13 +482,13 @@
 
     <!-- Игровое поле 8x8 -->
     <main class="w-full flex-1 flex flex-col items-center justify-center my-1 min-h-0">
-      <div class="workbench p-2.5 rounded-3xl">
+      <div id="workbench-box" class="workbench p-2.5 rounded-3xl">
         <div class="rivet top-2 left-2"></div>
         <div class="rivet top-2 right-2"></div>
         <div class="rivet bottom-2 left-2"></div>
         <div class="rivet bottom-2 right-2"></div>
-        <div id="status-banner" class="text-center text-[11px] font-bold text-amber-300 mb-1.5 h-4 tracking-wide">
-          Свайпай или нажимай на соседние детали!
+        <div id="status-banner" class="text-center text-[11px] font-extrabold text-amber-300 mb-1.5 h-4 tracking-wide">
+          Собирай 4 и 5 деталей для мощных 3D-бустеров!
         </div>
         <div id="board" class="board-grid"></div>
       </div>
@@ -565,12 +498,12 @@
     <footer class="w-full flex items-center justify-around py-1 shrink-0">
       <button onclick="activateTool('hammer')" id="btn-hammer" class="tool-btn w-16 h-14 rounded-2xl flex flex-col items-center justify-center relative">
         <span class="text-xl leading-none">🔨</span>
-        <span class="text-[9px] font-bold mt-0.5">Молоток</span>
+        <span class="text-[9px] font-bold mt-0.5">Кувалда</span>
         <span id="cnt-hammer" class="absolute -top-1.5 -right-1.5 bg-red-500 border border-white text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">3</span>
       </button>
       <button onclick="activateTool('wrench')" id="btn-wrench" class="tool-btn w-16 h-14 rounded-2xl flex flex-col items-center justify-center relative">
         <span class="text-xl leading-none">🔧</span>
-        <span class="text-[9px] font-bold mt-0.5">Гайковерт</span>
+        <span class="text-[9px] font-bold mt-0.5">Пневмоключ</span>
         <span id="cnt-wrench" class="absolute -top-1.5 -right-1.5 bg-red-500 border border-white text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">2</span>
       </button>
       <button onclick="activateTool('shuffle')" id="btn-shuffle" class="tool-btn w-16 h-14 rounded-2xl flex flex-col items-center justify-center relative">
@@ -584,16 +517,16 @@
   <!-- ОКНО ПОБЕДЫ -->
   <div id="win-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
     <div class="glass-capsule max-w-sm w-full rounded-3xl p-6 text-center border-2 border-amber-400">
-      <div class="text-5xl mb-2">🏆</div>
-      <h2 class="text-2xl font-black text-amber-300 uppercase">Уровень пройден!</h2>
-      <p class="text-sm text-slate-300 mt-1 mb-4">Получена звезда для восстановления пикапа!</p>
+      <div class="text-5xl mb-2 animate-bounce">🏆</div>
+      <h2 class="text-2xl font-black text-amber-300 uppercase">Победа мастера!</h2>
+      <p class="text-sm text-slate-300 mt-1 mb-4">Детали собраны, получена звезда для тюнинга!</p>
       <div class="flex justify-center gap-4 mb-5">
         <div class="bg-slate-900/90 px-4 py-2 rounded-xl border border-amber-400/40 font-black text-amber-300">⭐ +1</div>
-        <div class="bg-slate-900/90 px-4 py-2 rounded-xl border border-emerald-400/40 font-black text-emerald-300">🪙 +75</div>
+        <div class="bg-slate-900/90 px-4 py-2 rounded-xl border border-emerald-400/40 font-black text-emerald-300">🪙 +100</div>
       </div>
       <div class="flex gap-2">
         <button onclick="winToGarage()" class="flex-1 py-3 rounded-2xl font-black text-sm bg-gradient-to-b from-sky-400 to-blue-600 border-2 border-sky-200 shadow-lg active:scale-95 transition">
-          🔧 В ГАРАЖ
+          🔧 В 3D ГАРАЖ
         </button>
         <button onclick="nextLevel()" class="flex-1 py-3 rounded-2xl font-black text-sm bg-gradient-to-b from-emerald-400 to-emerald-600 border-2 border-emerald-200 shadow-lg active:scale-95 transition">
           ДАЛЬШЕ ▶
@@ -605,7 +538,9 @@
   <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 bg-amber-400 text-slate-950 font-black text-xs px-4 py-2 rounded-full shadow-xl hidden z-50 whitespace-nowrap"></div>
 
   <script>
-    // Инициализация Telegram WebApp SDK
+    // =========================================================================
+    // 1. TELEGRAM WEBAPP SDK & ХРАНИЛИЩЕ
+    // =========================================================================
     const tg = window.Telegram?.WebApp;
     if (tg) {
       tg.ready();
@@ -631,13 +566,260 @@
       } catch (e) {}
     }
 
+    // =========================================================================
+    // 2. АУДИО-СИНТЕЗАТОР (WEB AUDIO API: ЩЕЛЧКИ, ТРЕЩОТКА, МОТОР V8, ВЗРЫВЫ)
+    // =========================================================================
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function getAudio() {
+      if (!soundEnabled) return null;
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) audioCtx = new AudioContext();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      return audioCtx;
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-btn').innerText = soundEnabled ? '🔊' : '🔇';
+      if (soundEnabled) playSFX('click');
+    }
+
+    function playSFX(type, combo = 1) {
+      const ctx = getAudio();
+      if (!ctx) return;
+      const now = ctx.currentTime;
+
+      if (type === 'click') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(520, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.045);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.045);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } else if (type === 'match') {
+        const baseFreq = 340 * Math.pow(1.12, Math.min(combo, 8));
+        [1, 1.25, 1.5].forEach((mult, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(baseFreq * mult, now + idx * 0.04);
+          osc.frequency.exponentialRampToValueAtTime(baseFreq * mult * 1.4, now + idx * 0.04 + 0.16);
+          gain.gain.setValueAtTime(0.16, now + idx * 0.04);
+          gain.gain.exponentialRampToValueAtTime(0.005, now + idx * 0.04 + 0.17);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.04);
+          osc.stop(now + idx * 0.04 + 0.18);
+        });
+      } else if (type === 'boom') {
+        const bufferSize = ctx.sampleRate * 0.28;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(650, now);
+        filter.frequency.linearRampToValueAtTime(90, now + 0.28);
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.32, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        noise.start(now);
+      } else if (type === 'ratchet') {
+        // Звук пневматического гайковерта / трещотки при установке детали
+        for (let i = 0; i < 6; i++) {
+          const t = now + i * 0.055;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(750 + (i % 2) * 180, t);
+          osc.frequency.exponentialRampToValueAtTime(220, t + 0.04);
+          gain.gain.setValueAtTime(0.15, t);
+          gain.gain.linearRampToValueAtTime(0.01, t + 0.04);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.045);
+        }
+      } else if (type === 'engine') {
+        // Рык мотора V8
+        const osc = ctx.createOscillator();
+        const sub = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        sub.type = 'square';
+        osc.frequency.setValueAtTime(58, now);
+        osc.frequency.linearRampToValueAtTime(145, now + 0.28);
+        osc.frequency.exponentialRampToValueAtTime(68, now + 0.85);
+        sub.frequency.setValueAtTime(29, now);
+        sub.frequency.linearRampToValueAtTime(72, now + 0.28);
+        sub.frequency.exponentialRampToValueAtTime(34, now + 0.85);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.008, now + 0.88);
+        osc.connect(gain);
+        sub.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        sub.start(now);
+        osc.stop(now + 0.9);
+        sub.stop(now + 0.9);
+      } else if (type === 'win') {
+        [440, 554, 659, 880].forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, now + i * 0.09);
+          gain.gain.setValueAtTime(0.2, now + i * 0.09);
+          gain.gain.exponentialRampToValueAtTime(0.008, now + i * 0.09 + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + i * 0.09);
+          osc.stop(now + i * 0.09 + 0.36);
+        });
+      }
+    }
+
+    // =========================================================================
+    // 3. СИСТЕМА ЧАСТИЦ И РАЗЛЕТА ИСКР НА CANVAS (60 FPS JUICINESS)
+    // =========================================================================
+    const fxCanvas = document.getElementById('fx-canvas');
+    const fxCtx = fxCanvas.getContext('2d');
+    let particles = [];
+
+    function resizeFxCanvas() {
+      fxCanvas.width = window.innerWidth;
+      fxCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeFxCanvas);
+    resizeFxCanvas();
+
+    function spawnParticles(x, y, color = '#facc15', count = 14) {
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+        const speed = 2.5 + Math.random() * 5.5;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.5,
+          size: 4 + Math.random() * 5,
+          color,
+          alpha: 1,
+          decay: 0.025 + Math.random() * 0.02
+        });
+      }
+    }
+
+    function updateParticlesLoop() {
+      fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.22; // гравитация
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) {
+          particles.splice(i, 1);
+          continue;
+        }
+        fxCtx.save();
+        fxCtx.globalAlpha = p.alpha;
+        fxCtx.fillStyle = p.color;
+        fxCtx.shadowColor = p.color;
+        fxCtx.shadowBlur = 8;
+        fxCtx.beginPath();
+        fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        fxCtx.fill();
+        fxCtx.restore();
+      }
+      requestAnimationFrame(updateParticlesLoop);
+    }
+    requestAnimationFrame(updateParticlesLoop);
+
+    function spawnFlyingReward(fromX, fromY, svgHtml, targetElemId) {
+      const targetEl = document.getElementById(targetElemId);
+      if (!targetEl) return;
+      const rect = targetEl.getBoundingClientRect();
+      const fly = document.createElement('div');
+      fly.className = 'fly-item';
+      fly.style.left = `${fromX - 19}px`;
+      fly.style.top = `${fromY - 19}px`;
+      fly.innerHTML = svgHtml;
+      document.body.appendChild(fly);
+
+      requestAnimationFrame(() => {
+        const dx = (rect.left + rect.width / 2) - fromX;
+        const dy = (rect.top + rect.height / 2) - fromY;
+        fly.style.transform = `translate(${dx}px, ${dy}px) scale(0.45)`;
+        fly.style.opacity = '0.2';
+      });
+
+      setTimeout(() => {
+        fly.remove();
+        targetEl.classList.add('scale-110');
+        setTimeout(() => targetEl.classList.remove('scale-110'), 140);
+      }, 580);
+    }
+
+    // =========================================================================
+    // 4. МЕТА-ИГРА И ЗАДАЧИ В ГАРАЖЕ (КУЗОВ, МОТОР, КОЛЕСА + САЛОН)
+    // =========================================================================
+    let currentLevel = 1;
+    let coins = 250;
+    let stars = 3;
+
+    const GARAGE_TASKS = {
+      engine: {
+        id: 'engine', title: 'Собрать мотор V8', desc: 'Мощный блок с хромированным нагнетателем!', cost: 1, icon: '⚙️', done: false, selectedStyle: 0,
+        variants: [
+          { name: 'Ретро-хром V8', icon: '✨', blockColor: 0xe2e8f0, intakeColor: 0x38bdf8, blower: true },
+          { name: 'Спорт Би-Турбо', icon: '🖤', blockColor: 0x1e293b, intakeColor: 0xef4444, blower: true },
+          { name: 'Золотой Хот-род', icon: '🔥', blockColor: 0xf59e0b, intakeColor: 0xfde047, blower: true }
+        ]
+      },
+      paint: {
+        id: 'paint', title: 'Покрасить кузов', desc: 'Глубокий выставочный металлик и лак!', cost: 1, icon: '🎨', done: false, selectedStyle: 0,
+        variants: [
+          { name: 'Бирюзовый Винтаж', icon: '💎', bodyColor: 0x06b6d4, stripeColor: 0xffffff, metalness: 0.65, roughness: 0.2 },
+          { name: 'Ночной Перехватчик', icon: '🖤', bodyColor: 0x18181b, stripeColor: 0x38bdf8, metalness: 0.75, roughness: 0.18 },
+          { name: 'Рубиновое Пламя', icon: '🔥', bodyColor: 0xdc2626, stripeColor: 0xfacc15, metalness: 0.7, roughness: 0.15 }
+        ]
+      },
+      interior: {
+        id: 'interior', title: 'Перешить салон', desc: 'Кожаные кресла, новый руль и приборы!', cost: 1, icon: '💺', done: false, selectedStyle: 0,
+        variants: [
+          { name: 'Кремовая Кожа', icon: '🥂', seatColor: 0xfde68a, dashColor: 0x78350f, wheelColor: 0x92400e },
+          { name: 'Спорт Алькантара', icon: '🏎️', seatColor: 0xef4444, dashColor: 0x0f172a, wheelColor: 0x38bdf8 },
+          { name: 'Фиолетовый Велюр', icon: '👑', seatColor: 0xa855f7, dashColor: 0x3b0764, wheelColor: 0xfacc15 }
+        ]
+      },
+      wheels: {
+        id: 'wheels', title: 'Поставить диски', desc: 'Широкие катки и брендовая резина!', cost: 1, icon: '🛞', done: false, selectedStyle: 0,
+        variants: [
+          { name: 'Белые Вайтволы', icon: '⚪', tireColor: 0x18181b, rimColor: 0xf8fafc, accentColor: 0xffffff },
+          { name: 'Золотая Ковка', icon: '🌟', tireColor: 0x0f172a, rimColor: 0xfacc15, accentColor: 0x38bdf8 },
+          { name: 'Дрэг-Слики', icon: '🔥', tireColor: 0x111827, rimColor: 0xef4444, accentColor: 0xf97316 }
+        ]
+      }
+    };
+
     function saveGameProgress() {
       const payload = JSON.stringify({ currentLevel, coins, stars, GARAGE_TASKS });
-      try { localStorage.setItem('garage_save', payload); } catch (e) {}
+      try { localStorage.setItem('garage_save_v2', payload); } catch (e) {}
       if (tg?.CloudStorage) {
-        try {
-          tg.CloudStorage.setItem('garage_save', payload, () => {});
-        } catch (e) {}
+        try { tg.CloudStorage.setItem('garage_save_v2', payload, () => {}); } catch (e) {}
       }
     }
 
@@ -656,60 +838,439 @@
           }
         } catch (e) {}
       };
-
       if (!tg?.CloudStorage) {
-        applySaved(localStorage.getItem('garage_save'));
+        applySaved(localStorage.getItem('garage_save_v2'));
         if (callback) callback();
         return;
       }
       try {
-        tg.CloudStorage.getItem('garage_save', (err, val) => {
+        tg.CloudStorage.getItem('garage_save_v2', (err, val) => {
           if (!err && val) applySaved(val);
-          else applySaved(localStorage.getItem('garage_save'));
+          else applySaved(localStorage.getItem('garage_save_v2'));
           if (callback) callback();
         });
       } catch (e) {
-        applySaved(localStorage.getItem('garage_save'));
+        applySaved(localStorage.getItem('garage_save_v2'));
         if (callback) callback();
       }
     }
 
-    // МЕТА-ИГРА И ГАРАЖ
-    let currentLevel = 1;
-    let coins = 250;
-    let stars = 3;
+    // =========================================================================
+    // 5. THREE.JS 3D-ГАРАЖ 360° И ОСМОТР САЛОНА ВНУТРИ КАБИНЫ
+    // =========================================================================
+    let scene, camera, renderer, carGroup, engineMeshGroup, wheelsMeshGroup;
+    let bodyMat, stripeMat, seatMat, dashMat, steeringMat, rustMeshGroup;
+    let isInteriorView = false;
+    let camYaw = 0.65, camPitch = 0.28, targetYaw = 0.65, targetPitch = 0.28;
+    let camDist = 7.4, targetDist = 7.4;
+    let camLookAt = new THREE.Vector3(0, 0.75, 0);
+    let targetLookAt = new THREE.Vector3(0, 0.75, 0);
+    let engineRevving = 0;
 
-    const GARAGE_TASKS = {
-      engine: {
-        id: 'engine', title: 'Собрать мотор V8', desc: 'Без карбюратора пикап не заведется!', cost: 1, icon: '⚙️', done: false, selectedStyle: 0,
-        variants: [
-          { name: 'Ретро-хром', icon: '✨', engineColor: '#e2e8f0', intakeColor: '#38bdf8' },
-          { name: 'Спорт Турбо', icon: '🖤', engineColor: '#1e293b', intakeColor: '#ef4444' },
-          { name: 'Хот-род Нагнетатель', icon: '🔥', engineColor: '#f59e0b', intakeColor: '#fde047' }
-        ]
-      },
-      paint: {
-        id: 'paint', title: 'Покрасить кузов', desc: 'Вернем машине выставочный блеск!', cost: 1, icon: '🎨', done: false, selectedStyle: 0,
-        variants: [
-          { name: 'Бирюзовый Винтаж', icon: '💎', bodyColor: '#06b6d4', style: 'retro' },
-          { name: 'Ночной Перехватчик', icon: '🖤', bodyColor: '#1e293b', style: 'sport' },
-          { name: 'Хот-род Пламя', icon: '🔥', bodyColor: '#dc2626', style: 'hotrod' }
-        ]
-      },
-      wheels: {
-        id: 'wheels', title: 'Поставить колеса', desc: 'Выберем крутые диски для подвески!', cost: 1, icon: '🛞', done: false, selectedStyle: 0,
-        variants: [
-          { name: 'Белые Вайтволы', icon: '⚪', tireColor: '#1e293b', rimColor: '#f8fafc', wallColor: '#ffffff' },
-          { name: 'Золотая Ковка', icon: '🌟', tireColor: '#0f172a', rimColor: '#facc15', wallColor: '#38bdf8' },
-          { name: 'Дрэг-Слики', icon: '🔥', tireColor: '#18181b', rimColor: '#ef4444', wallColor: '#f97316' }
-        ]
+    function init3DGarage() {
+      const container = document.getElementById('garage-3d-viewport');
+      if (!container || !window.THREE) return;
+
+      scene = new THREE.Scene();
+      scene.fog = new THREE.FogExp2(0x0c0f18, 0.055);
+
+      camera = new THREE.PerspectiveCamera(44, container.clientWidth / container.clientHeight, 0.1, 100);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      container.innerHTML = '';
+      container.appendChild(renderer.domElement);
+
+      // Освещение гаража (теплый верхний софит + неоновые рефлексы)
+      const ambient = new THREE.AmbientLight(0xdbeafe, 0.65);
+      scene.add(ambient);
+
+      const spotLight = new THREE.SpotLight(0xffedd5, 1.65);
+      spotLight.position.set(2, 8.5, 3);
+      spotLight.castShadow = true;
+      spotLight.angle = Math.PI / 3;
+      spotLight.penumbra = 0.6;
+      scene.add(spotLight);
+
+      const cyanRim = new THREE.PointLight(0x38bdf8, 1.1, 12);
+      cyanRim.position.set(-4.5, 2.5, -3.5);
+      scene.add(cyanRim);
+
+      const warmRim = new THREE.PointLight(0xf59e0b, 1.0, 12);
+      warmRim.position.set(4.5, 2.2, 3.5);
+      scene.add(warmRim);
+
+      // Пол гаража с шашечной плиткой
+      const floorCanvas = document.createElement('canvas');
+      floorCanvas.width = 256;
+      floorCanvas.height = 256;
+      const fCtx = floorCanvas.getContext('2d');
+      for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+          fCtx.fillStyle = (x + y) % 2 === 0 ? '#1e2433' : '#121622';
+          fCtx.fillRect(x * 32, y * 32, 32, 32);
+        }
       }
-    };
+      const floorTex = new THREE.CanvasTexture(floorCanvas);
+      floorTex.wrapS = THREE.RepeatWrapping;
+      floorTex.wrapT = THREE.RepeatWrapping;
+      floorTex.repeat.set(4, 4);
 
+      const floor = new THREE.Mesh(
+        new THREE.CircleGeometry(9, 48),
+        new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.4, metalness: 0.2 })
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.receiveShadow = true;
+      scene.add(floor);
+
+      // Подиум и стойки гидравлического подъемника
+      const liftMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, metalness: 0.6, roughness: 0.3 });
+      const armMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.5, roughness: 0.3 });
+      [-1.75, 1.75].forEach(xPos => {
+        const post = new THREE.Mesh(new THREE.BoxGeometry(0.24, 2.5, 0.24), liftMat);
+        post.position.set(xPos, 1.25, 0);
+        post.castShadow = true;
+        scene.add(post);
+
+        const base = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 3.4), armMat);
+        base.position.set(xPos * 0.55, 0.06, 0);
+        scene.add(base);
+      });
+
+      // Сборка 3D-Пикапа с открытым салоном
+      carGroup = new THREE.Group();
+      carGroup.position.y = 0.12;
+      scene.add(carGroup);
+
+      bodyMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.65, metalness: 0.25 });
+      stripeMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.5, metalness: 0.3 });
+      const chromeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.15, metalness: 0.92 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x93c5fd, transparent: true, opacity: 0.32, roughness: 0.1, metalness: 0.8 });
+      const darkMetal = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.7 });
+
+      // Нижняя рама
+      const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.25, 4.3), darkMetal);
+      chassis.position.set(0, 0.55, 0);
+      chassis.castShadow = true;
+      carGroup.add(chassis);
+
+      // Капот и моторный отсек
+      const hood = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.55, 1.45), bodyMat);
+      hood.position.set(0, 0.88, 1.42);
+      hood.castShadow = true;
+      carGroup.add(hood);
+
+      const hoodStripe = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.56, 1.46), stripeMat);
+      hoodStripe.position.set(0, 0.88, 1.42);
+      carGroup.add(hoodStripe);
+
+      // Борта кузова и двери
+      [-0.86, 0.86].forEach(sideX => {
+        const door = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.58, 1.25), bodyMat);
+        door.position.set(sideX, 0.88, 0.1);
+        door.castShadow = true;
+        carGroup.add(door);
+
+        const bedSide = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.58, 1.55), bodyMat);
+        bedSide.position.set(sideX, 0.88, -1.32);
+        bedSide.castShadow = true;
+        carGroup.add(bedSide);
+
+        // Расширители арок
+        const frontArch = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.9), bodyMat);
+        frontArch.position.set(sideX, 0.72, 1.35);
+        carGroup.add(frontArch);
+
+        const rearArch = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.26, 0.9), bodyMat);
+        rearArch.position.set(sideX, 0.72, -1.32);
+        carGroup.add(rearArch);
+      });
+
+      // Задний борт и деревянный настил кузова
+      const tailgate = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.58, 0.14), bodyMat);
+      tailgate.position.set(0, 0.88, -2.05);
+      carGroup.add(tailgate);
+
+      const bedFloor = new THREE.Mesh(
+        new THREE.BoxGeometry(1.65, 0.08, 1.5),
+        new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 })
+      );
+      bedFloor.position.set(0, 0.68, -1.32);
+      carGroup.add(bedFloor);
+
+      // Крыша и стойки кабины (прозрачный обзор внутрь салона)
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(1.72, 0.12, 1.15), bodyMat);
+      roof.position.set(0, 1.78, 0.02);
+      roof.castShadow = true;
+      carGroup.add(roof);
+
+      [[-0.78, 0.55], [0.78, 0.55], [-0.78, -0.48], [0.78, -0.48]].forEach(([px, pz]) => {
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.68, 0.1), bodyMat);
+        pillar.position.set(px, 1.44, pz);
+        carGroup.add(pillar);
+      });
+
+      // Лобовое и заднее стекло
+      const windshield = new THREE.Mesh(new THREE.PlaneGeometry(1.56, 0.65), glassMat);
+      windshield.position.set(0, 1.44, 0.58);
+      windshield.rotation.x = -0.18;
+      carGroup.add(windshield);
+
+      // === ДЕТАЛИЗИРОВАННЫЙ САЛОН ВНУТРИ КАБИНЫ ===
+      seatMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.75 });
+      dashMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+      steeringMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.4 });
+
+      // Диван и спинка сидений
+      const seatBase = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.24, 0.58), seatMat);
+      seatBase.position.set(0, 0.82, -0.12);
+      carGroup.add(seatBase);
+
+      const seatBack = new THREE.Mesh(new THREE.BoxGeometry(1.48, 0.58, 0.18), seatMat);
+      seatBack.position.set(0, 1.15, -0.34);
+      seatBack.rotation.x = -0.12;
+      carGroup.add(seatBack);
+
+      // Торпеда и светящиеся приборы
+      const dashboard = new THREE.Mesh(new THREE.BoxGeometry(1.56, 0.34, 0.38), dashMat);
+      dashboard.position.set(0, 1.08, 0.45);
+      carGroup.add(dashboard);
+
+      const gaugeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      [-0.42, -0.22, 0.05].forEach(gx => {
+        const gauge = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.02, 16), gaugeMat);
+        gauge.rotation.x = Math.PI / 2;
+        gauge.position.set(gx, 1.12, 0.25);
+        carGroup.add(gauge);
+      });
+
+      // Рулевое колесо и колонка
+      const steeringCol = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.32), chromeMat);
+      steeringCol.rotation.x = Math.PI / 3;
+      steeringCol.position.set(-0.38, 1.12, 0.22);
+      carGroup.add(steeringCol);
+
+      const steeringWheel = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.028, 12, 24), steeringMat);
+      steeringWheel.rotation.x = -0.35;
+      steeringWheel.position.set(-0.38, 1.18, 0.1);
+      carGroup.add(steeringWheel);
+
+      // Освещение внутри салона
+      const cabinLight = new THREE.PointLight(0xfef08a, 0.9, 2.5);
+      cabinLight.position.set(0, 1.62, 0.05);
+      carGroup.add(cabinLight);
+
+      // Хромированные бамперы, решетка радиатора и светящиеся фары
+      const frontBumper = new THREE.Mesh(new THREE.BoxGeometry(1.96, 0.22, 0.22), chromeMat);
+      frontBumper.position.set(0, 0.62, 2.18);
+      carGroup.add(frontBumper);
+
+      const rearBumper = new THREE.Mesh(new THREE.BoxGeometry(1.96, 0.22, 0.22), chromeMat);
+      rearBumper.position.set(0, 0.62, -2.16);
+      carGroup.add(rearBumper);
+
+      const grille = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.36, 0.08), chromeMat);
+      grille.position.set(0, 0.86, 2.15);
+      carGroup.add(grille);
+
+      const headlightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+      [-0.68, 0.68].forEach(hx => {
+        const hl = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.08, 20), headlightMat);
+        hl.rotation.x = Math.PI / 2;
+        hl.position.set(hx, 0.92, 2.15);
+        carGroup.add(hl);
+      });
+
+      // Слой ржавчины (до покраски)
+      rustMeshGroup = new THREE.Group();
+      const rustMat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.95 });
+      const r1 = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.02, 0.45), rustMat);
+      r1.position.set(0.35, 1.16, 1.35);
+      const r2 = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.28, 0.65), rustMat);
+      r2.position.set(0.94, 0.88, -0.8);
+      rustMeshGroup.add(r1, r2);
+      carGroup.add(rustMeshGroup);
+
+      // Слой двигателя V8 (на капоте)
+      engineMeshGroup = new THREE.Group();
+      carGroup.add(engineMeshGroup);
+      rebuild3DEngine(0x57534e, 0x44403c, false);
+
+      // Слой колес
+      wheelsMeshGroup = new THREE.Group();
+      carGroup.add(wheelsMeshGroup);
+      rebuild3DWheels(0x334155, 0x94a3b8, 0x475569);
+
+      // Обработчики вращения 360° пальцем / мышкой
+      setup3DOrbitControls(container);
+
+      window.addEventListener('resize', () => {
+        if (!renderer || !camera) return;
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+
+      animate3DLoop();
+    }
+
+    function rebuild3DEngine(blockHex, intakeHex, hasBlower = true) {
+      if (!engineMeshGroup) return;
+      engineMeshGroup.clear();
+      const bMat = new THREE.MeshStandardMaterial({ color: blockHex, metalness: 0.75, roughness: 0.25 });
+      const iMat = new THREE.MeshStandardMaterial({ color: intakeHex, metalness: 0.6, roughness: 0.3 });
+
+      const block = new THREE.Mesh(new THREE.BoxGeometry(0.68, 0.28, 0.68), bMat);
+      block.position.set(0, 1.22, 1.42);
+      engineMeshGroup.add(block);
+
+      if (hasBlower) {
+        const scoop = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.22, 0.52), iMat);
+        scoop.position.set(0, 1.44, 1.42);
+        engineMeshGroup.add(scoop);
+
+        // Дроссельные заслонки нагнетателя
+        [-0.12, 0.12].forEach(bx => {
+          const pipe = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.07, 0.07, 0.12, 16),
+            new THREE.MeshStandardMaterial({ color: 0xfef08a, metalness: 0.9, roughness: 0.1 })
+          );
+          pipe.rotation.x = Math.PI / 2;
+          pipe.position.set(bx, 1.45, 1.69);
+          engineMeshGroup.add(pipe);
+        });
+      }
+    }
+
+    function rebuild3DWheels(tireHex, rimHex, accentHex) {
+      if (!wheelsMeshGroup) return;
+      wheelsMeshGroup.clear();
+      const tMat = new THREE.MeshStandardMaterial({ color: tireHex, roughness: 0.85 });
+      const rMat = new THREE.MeshStandardMaterial({ color: rimHex, metalness: 0.8, roughness: 0.2 });
+      const aMat = new THREE.MeshStandardMaterial({ color: accentHex, roughness: 0.4 });
+
+      const positions = [
+        [-0.95, 0.46, 1.35], [0.95, 0.46, 1.35],
+        [-0.95, 0.46, -1.32], [0.95, 0.46, -1.32]
+      ];
+      positions.forEach(([wx, wy, wz]) => {
+        const wGroup = new THREE.Group();
+        wGroup.position.set(wx, wy, wz);
+
+        const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.36, 28), tMat);
+        tire.rotation.z = Math.PI / 2;
+        tire.castShadow = true;
+        wGroup.add(tire);
+
+        const wall = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.37, 24), aMat);
+        wall.rotation.z = Math.PI / 2;
+        wGroup.add(wall);
+
+        const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.39, 20), rMat);
+        rim.rotation.z = Math.PI / 2;
+        wGroup.add(rim);
+
+        wheelsMeshGroup.add(wGroup);
+      });
+    }
+
+    function setup3DOrbitControls(el) {
+      let dragging = false;
+      let prevX = 0, prevY = 0;
+
+      const onDown = (x, y) => { dragging = true; prevX = x; prevY = y; };
+      const onMove = (x, y) => {
+        if (!dragging) return;
+        const dx = x - prevX;
+        const dy = y - prevY;
+        prevX = x;
+        prevY = y;
+        targetYaw -= dx * 0.011;
+        targetPitch = Math.max(0.08, Math.min(0.85, targetPitch + dy * 0.007));
+      };
+      const onUp = () => { dragging = false; };
+
+      el.addEventListener('mousedown', e => onDown(e.clientX, e.clientY));
+      window.addEventListener('mousemove', e => onMove(e.clientX, e.clientY));
+      window.addEventListener('mouseup', onUp);
+
+      el.addEventListener('touchstart', e => {
+        if (e.touches.length === 1) onDown(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      el.addEventListener('touchmove', e => {
+        if (e.touches.length === 1) onMove(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      el.addEventListener('touchend', onUp);
+    }
+
+    function toggleInteriorView() {
+      isInteriorView = !isInteriorView;
+      playSFX('click');
+      tgHaptic('medium');
+      const btn = document.getElementById('btn-interior-cam');
+      if (isInteriorView) {
+        targetDist = 1.65;
+        targetPitch = 0.22;
+        targetYaw = -0.65;
+        targetLookAt.set(-0.1, 1.12, 0.25);
+        btn.innerHTML = '<span>🚙</span> Снаружи 360°';
+        showToast('Камера в салоне! Крути обзор пальцем 👀');
+      } else {
+        targetDist = 7.4;
+        targetPitch = 0.28;
+        targetLookAt.set(0, 0.75, 0);
+        btn.innerHTML = '<span>👁️</span> В салон';
+      }
+    }
+
+    function revEngine() {
+      playSFX('engine');
+      tgHaptic('heavy');
+      engineRevving = 28;
+      const rect = document.getElementById('garage-3d-viewport').getBoundingClientRect();
+      spawnParticles(rect.width / 2, rect.height / 2, '#f97316', 18);
+      showToast('Рев мотора V8! 💨🔥');
+    }
+
+    function animate3DLoop() {
+      requestAnimationFrame(animate3DLoop);
+      if (!renderer || !scene || !camera) return;
+
+      // Плавная интерполяция камеры (damping)
+      camYaw += (targetYaw - camYaw) * 0.1;
+      camPitch += (targetPitch - camPitch) * 0.1;
+      camDist += (targetDist - camDist) * 0.1;
+      camLookAt.lerp(targetLookAt, 0.1);
+
+      // Вибрация кузова при запуске двигателя V8
+      if (engineRevving > 0 && carGroup) {
+        engineRevving--;
+        carGroup.position.x = (Math.random() - 0.5) * 0.06;
+        carGroup.rotation.z = (Math.random() - 0.5) * 0.03;
+      } else if (carGroup) {
+        carGroup.position.x = 0;
+        carGroup.rotation.z = 0;
+      }
+
+      camera.position.x = camLookAt.x + camDist * Math.sin(camYaw) * Math.cos(camPitch);
+      camera.position.y = camLookAt.y + camDist * Math.sin(camPitch);
+      camera.position.z = camLookAt.z + camDist * Math.cos(camYaw) * Math.cos(camPitch);
+      camera.lookAt(camLookAt);
+
+      renderer.render(scene, camera);
+    }
+
+    // =========================================================================
+    // 6. КАСТОМИЗАЦИЯ МАШИНЫ И ПЛАНШЕТ ЗАДАЧ
+    // =========================================================================
     let activeCustomPart = null;
     let previewIndex = 0;
 
     function openTablet() {
+      playSFX('click');
       tgHaptic('light');
       renderTabletTasks();
       const modal = document.getElementById('tablet-modal');
@@ -718,6 +1279,7 @@
     }
 
     function closeTablet() {
+      playSFX('click');
       tgHaptic('light');
       const modal = document.getElementById('tablet-modal');
       modal.classList.add('hidden');
@@ -752,24 +1314,32 @@
     function startTaskCustomization(partId, isFree = false) {
       const task = GARAGE_TASKS[partId];
       if (!task.done && !isFree && stars < task.cost) {
+        playSFX('click');
         showToast('Не хватает ⭐! Пройдите уровень Match-3.');
         switchToMatch3();
         return;
       }
       activeCustomPart = partId;
       previewIndex = task.selectedStyle || 0;
+
+      // Наводим 3D-камеру на выбранный узел
+      if (partId === 'interior' && !isInteriorView) toggleInteriorView();
+      else if (partId !== 'interior' && isInteriorView) toggleInteriorView();
+      if (partId === 'engine') { targetYaw = 0.35; targetPitch = 0.35; }
+      else if (partId === 'wheels') { targetYaw = 1.25; targetPitch = 0.18; }
+
       document.getElementById('chooser-title').innerText = `СТИЛЬ: ${task.title.toUpperCase()}`;
       task.variants.forEach((v, idx) => {
         document.getElementById(`var-icon-${idx}`).innerText = v.icon;
         document.getElementById(`var-name-${idx}`).innerText = v.name;
       });
       document.getElementById('chooser-panel').classList.remove('hidden');
-      document.getElementById('pickup-svg').classList.add('scale-105');
       previewVariant(previewIndex);
     }
 
     function previewVariant(idx) {
       previewIndex = idx;
+      playSFX('click');
       tgHaptic('light');
       for (let i = 0; i < 3; i++) {
         const btn = document.getElementById(`var-btn-${i}`);
@@ -782,49 +1352,47 @@
 
     function applyCarVisuals(partId, styleIdx) {
       const task = GARAGE_TASKS[partId];
+      if (!task) return;
       const v = task.variants[styleIdx];
       if (partId === 'engine') {
-        document.getElementById('car-engine-layer').innerHTML = `
-          <rect x="86" y="84" width="60" height="40" rx="6" fill="${v.engineColor}" stroke="#0f172a" stroke-width="3"/>
-          <rect x="96" y="68" width="40" height="18" rx="4" fill="${v.intakeColor}" stroke="#ffffff" stroke-width="2"/>
-          <circle cx="106" cy="77" r="4" fill="#0f172a"/>
-          <circle cx="126" cy="77" r="4" fill="#0f172a"/>
-        `;
-      } else if (partId === 'paint') {
-        document.getElementById('pickup-main-paint').setAttribute('fill', v.bodyColor);
-        document.getElementById('rust-patches').classList.add('hidden');
-        document.getElementById('hotrod-flames').classList.toggle('hidden', v.style !== 'hotrod');
-        document.getElementById('sport-stripes').classList.toggle('hidden', v.style !== 'sport');
+        rebuild3DEngine(v.blockColor, v.intakeColor, v.blower);
+      } else if (partId === 'paint' && bodyMat) {
+        bodyMat.color.setHex(v.bodyColor);
+        bodyMat.metalness = v.metalness;
+        bodyMat.roughness = v.roughness;
+        stripeMat.color.setHex(v.stripeColor);
+        if (rustMeshGroup) rustMeshGroup.visible = false;
+      } else if (partId === 'interior' && seatMat) {
+        seatMat.color.setHex(v.seatColor);
+        dashMat.color.setHex(v.dashColor);
+        steeringMat.color.setHex(v.wheelColor);
       } else if (partId === 'wheels') {
-        document.getElementById('car-wheels-layer').innerHTML = `
-          <circle cx="122" cy="154" r="34" fill="${v.tireColor}" stroke="${v.wallColor}" stroke-width="4"/>
-          <circle cx="122" cy="154" r="17" fill="${v.rimColor}" stroke="#0f172a" stroke-width="3"/>
-          <circle cx="122" cy="154" r="6" fill="#0f172a"/>
-          <circle cx="320" cy="154" r="34" fill="${v.tireColor}" stroke="${v.wallColor}" stroke-width="4"/>
-          <circle cx="320" cy="154" r="17" fill="${v.rimColor}" stroke="#0f172a" stroke-width="3"/>
-          <circle cx="320" cy="154" r="6" fill="#0f172a"/>
-        `;
+        rebuild3DWheels(v.tireColor, v.rimColor, v.accentColor);
       }
     }
 
     function confirmCustomization() {
+      playSFX('ratchet');
       tgHaptic('success');
       const task = GARAGE_TASKS[activeCustomPart];
       if (!task.done) { stars -= task.cost; task.done = true; }
       task.selectedStyle = previewIndex;
       document.getElementById('chooser-panel').classList.add('hidden');
-      document.getElementById('pickup-svg').classList.remove('scale-105');
+      if (isInteriorView) toggleInteriorView();
       activeCustomPart = null;
+
+      spawnParticles(window.innerWidth / 2, window.innerHeight / 2, '#38bdf8', 24);
       updateGarageProgress();
       updateUI();
       saveGameProgress();
-      showToast('Успешно установлено! 🎉');
+      showToast('Деталь установлена! Машина сияет! ✨');
     }
 
     function cancelCustomization() {
+      playSFX('click');
       tgHaptic('light');
       document.getElementById('chooser-panel').classList.add('hidden');
-      document.getElementById('pickup-svg').classList.remove('scale-105');
+      if (isInteriorView) toggleInteriorView();
       activeCustomPart = null;
       updateGarageProgress();
     }
@@ -846,6 +1414,7 @@
     }
 
     function switchToMatch3() {
+      playSFX('click');
       tgHaptic('medium');
       document.getElementById('garage-screen').classList.add('hidden');
       document.getElementById('match3-screen').classList.remove('hidden');
@@ -853,6 +1422,7 @@
     }
 
     function switchToGarage() {
+      playSFX('click');
       tgHaptic('light');
       document.getElementById('match3-screen').classList.add('hidden');
       document.getElementById('garage-screen').classList.remove('hidden');
@@ -867,23 +1437,201 @@
       window._toastTimer = setTimeout(() => t.classList.add('hidden'), 2600);
     }
 
-    // MATCH-3 ИГРОВОЙ ДВИЖОК
+    // =========================================================================
+    // 7. ВЫСОКОДЕТАЛИЗИРОВАННЫЕ 3D-СПРАЙТЫ ФИГУРОК СТРОГО ПО РЕФЕРЕНСУ
+    // =========================================================================
     const SIZE = 8;
     const TYPES = ['piston', 'gear', 'jerrycan', 'tire', 'spark', 'battery'];
 
-    const SVGS = {
-      piston: `<svg viewBox="0 0 64 64" class="w-4/5 h-4/5 drop-shadow"><rect x="14" y="10" width="36" height="22" rx="5" fill="#fef2f2" stroke="#7f1d1d" stroke-width="3"/><line x1="18" y1="17" x2="46" y2="17" stroke="#ef4444" stroke-width="3"/><rect x="26" y="32" width="12" height="16" fill="#e2e8f0" stroke="#7f1d1d" stroke-width="3"/><circle cx="32" cy="49" r="8" fill="#ffffff" stroke="#7f1d1d" stroke-width="3"/></svg>`,
-      gear: `<svg viewBox="0 0 64 64" class="w-4/5 h-4/5 drop-shadow"><circle cx="32" cy="32" r="21" fill="#ffffff" stroke="#713f12" stroke-width="4" stroke-dasharray="9 5"/><circle cx="32" cy="32" r="14" fill="#fef08a" stroke="#713f12" stroke-width="3"/><circle cx="32" cy="32" r="6" fill="#713f12"/></svg>`,
-      jerrycan: `<svg viewBox="0 0 64 64" class="w-4/5 h-4/5 drop-shadow"><rect x="15" y="14" width="34" height="38" rx="7" fill="#fff7ed" stroke="#7c2d12" stroke-width="3"/><rect x="20" y="7" width="12" height="7" rx="2" fill="#fde047" stroke="#7c2d12" stroke-width="2.5"/><path d="M32 24 C32 24 24 33 24 38 A8 8 0 0 0 40 38 C40 33 32 24 32 24 Z" fill="#ea580c"/></svg>`,
-      tire: `<svg viewBox="0 0 64 64" class="w-4/5 h-4/5 drop-shadow"><circle cx="32" cy="32" r="22" fill="#1e293b" stroke="#052e16" stroke-width="4" stroke-dasharray="8 4"/><circle cx="32" cy="32" r="12" fill="#ffffff" stroke="#052e16" stroke-width="3"/><circle cx="32" cy="32" r="5" fill="#22c55e"/></svg>`,
-      spark: `<svg viewBox="0 0 64 64" class="w-4/5 h-4/5 drop-shadow"><polygon points="36,6 16,34 30,34 26,58 48,28 34,28" fill="#ffffff" stroke="#0c4a6e" stroke-width="3" stroke-linejoin="round"/></svg>`,
-      battery: `<svg viewBox="0 0 64 64" class="w-4/5 h-4/5 drop-shadow"><rect x="13" y="18" width="38" height="34" rx="6" fill="#faf5ff" stroke="#3b0764" stroke-width="3"/><rect x="19" y="11" width="8" height="7" rx="2" fill="#38bdf8" stroke="#3b0764" stroke-width="2.5"/><rect x="37" y="11" width="8" height="7" rx="2" fill="#ef4444" stroke="#3b0764" stroke-width="2.5"/><polygon points="34,23 24,35 32,35 28,46 40,33 32,33" fill="#eab308"/></svg>`,
-      rocket: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="8" y="20" width="48" height="24" rx="10" fill="#06b6d4" stroke="#ffffff" stroke-width="3"/><path d="M16 20 L24 44 M28 20 L36 44 M40 20 L48 44" stroke="#164e63" stroke-width="4"/><circle cx="14" cy="32" r="5" fill="#fef08a"/><circle cx="50" cy="32" r="5" fill="#fef08a"/></svg>`,
-      turbo: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="24" fill="#0f172a" stroke="#ffffff" stroke-width="3"/><path d="M32 12 L38 28 L52 32 L38 36 L32 52 L26 36 L12 32 L26 28 Z" fill="#38bdf8"/></svg>`,
-      nos: `<svg viewBox="0 0 64 64" class="w-full h-full"><rect x="16" y="12" width="32" height="42" rx="10" fill="#ef4444" stroke="#ffffff" stroke-width="3"/><rect x="25" y="5" width="14" height="7" rx="2" fill="#fde047"/><rect x="20" y="25" width="24" height="14" rx="3" fill="#ffffff"/><text x="32" y="36" font-size="11" font-weight="900" text-anchor="middle" fill="#dc2626">NOS</text></svg>`,
-      plasma: `<svg viewBox="0 0 64 64" class="w-full h-full"><circle cx="32" cy="32" r="25" fill="#1e1b4b" stroke="#ffffff" stroke-width="3" stroke-dasharray="8 4"/><circle cx="32" cy="32" r="17" fill="url(#plGrad)"/><defs><radialGradient id="plGrad"><stop offset="0%" stop-color="#ffffff"/><stop offset="40%" stop-color="#38bdf8"/><stop offset="75%" stop-color="#ec4899"/><stop offset="100%" stop-color="#eab308"/></radialGradient></defs></svg>`
+    const TILE_COLORS = {
+      piston: '#ef4444',
+      gear: '#facc15',
+      jerrycan: '#f97316',
+      tire: '#22c55e',
+      spark: '#38bdf8',
+      battery: '#a855f7'
     };
 
+    const SVGS = {
+      // RED PISTON (Объемный красный поршень с шатуном под наклоном)
+      piston: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <linearGradient id="pisHead" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ff8a8a"/><stop offset="45%" stop-color="#ef4444"/><stop offset="100%" stop-color="#7f1d1d"/>
+          </linearGradient>
+          <linearGradient id="pisRod" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ffffff"/><stop offset="50%" stop-color="#94a3b8"/><stop offset="100%" stop-color="#334155"/>
+          </linearGradient>
+        </defs>
+        <g transform="rotate(24 32 32)">
+          <rect x="26" y="30" width="12" height="20" rx="3" fill="url(#pisRod)" stroke="#1e293b" stroke-width="2"/>
+          <circle cx="32" cy="52" r="9.5" fill="url(#pisRod)" stroke="#1e293b" stroke-width="2"/>
+          <circle cx="32" cy="52" r="4.5" fill="#0f172a"/>
+          <rect x="14" y="6" width="36" height="27" rx="6" fill="url(#pisHead)" stroke="#450a0a" stroke-width="2"/>
+          <ellipse cx="32" cy="8" rx="17" ry="4" fill="#fecaca" opacity="0.75"/>
+          <line x1="15" y1="14" x2="49" y2="14" stroke="#fca5a5" stroke-width="2.5"/>
+          <line x1="15" y1="19" x2="49" y2="19" stroke="#7f1d1d" stroke-width="2.5"/>
+          <circle cx="32" cy="25" r="4.5" fill="url(#pisRod)" stroke="#450a0a" stroke-width="1.5"/>
+        </g>
+      </svg>`,
+
+      // YELLOW GEAR (Объемная золотая шестеренка с 8 зубьями и фаской)
+      gear: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <radialGradient id="gearGold" cx="32%" cy="28%" r="72%">
+            <stop offset="0%" stop-color="#fef9c3"/><stop offset="45%" stop-color="#facc15"/><stop offset="85%" stop-color="#ca8a04"/><stop offset="100%" stop-color="#713f12"/>
+          </radialGradient>
+        </defs>
+        <g stroke="#713f12" stroke-width="2" fill="url(#gearGold)">
+          <rect x="26" y="3" width="12" height="58" rx="3"/>
+          <rect x="26" y="3" width="12" height="58" rx="3" transform="rotate(45 32 32)"/>
+          <rect x="26" y="3" width="12" height="58" rx="3" transform="rotate(90 32 32)"/>
+          <rect x="26" y="3" width="12" height="58" rx="3" transform="rotate(135 32 32)"/>
+        </g>
+        <circle cx="32" cy="32" r="21" fill="url(#gearGold)" stroke="#fef08a" stroke-width="1.5"/>
+        <circle cx="32" cy="32" r="14" fill="#a16207" stroke="#fef08a" stroke-width="1.5"/>
+        <circle cx="32" cy="32" r="8" fill="#0f172a" stroke="#713f12" stroke-width="2"/>
+        <path d="M 19 20 A 16 16 0 0 1 42 16" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.75"/>
+      </svg>`,
+
+      // ORANGE JERRYCAN (3D Оранжевая канистра с ручкой, крышкой и каплей масла)
+      jerrycan: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <linearGradient id="canOr" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fdba74"/><stop offset="45%" stop-color="#f97316"/><stop offset="100%" stop-color="#9a3412"/>
+          </linearGradient>
+        </defs>
+        <rect x="13" y="12" width="38" height="45" rx="9" fill="url(#canOr)" stroke="#431407" stroke-width="2.2"/>
+        <rect x="25" y="16" width="18" height="7" rx="3" fill="#0f172a" stroke="#fdba74" stroke-width="1.5"/>
+        <rect x="15" y="6" width="11" height="7" rx="2.5" fill="#fbbf24" stroke="#78350f" stroke-width="2" transform="rotate(-12 20 9)"/>
+        <rect x="19" y="27" width="26" height="24" rx="5" fill="#ea580c" stroke="#fed7aa" stroke-width="1.5"/>
+        <path d="M32 30 C32 30 25 38 25 43 A7 7 0 0 0 39 43 C39 38 32 30 32 30 Z" fill="#fef08a" stroke="#7c2d12" stroke-width="1.5"/>
+        <path d="M17 18 L17 48" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/>
+      </svg>`,
+
+      // GREEN TIRE (Зубастое зеленое 3D-колесо с хромированным диском)
+      tire: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <radialGradient id="tireGr" cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#bef264"/><stop offset="50%" stop-color="#22c55e"/><stop offset="100%" stop-color="#14532d"/>
+          </radialGradient>
+        </defs>
+        <circle cx="32" cy="32" r="26" fill="url(#tireGr)" stroke="#052e16" stroke-width="2.5" stroke-dasharray="7 3"/>
+        <circle cx="32" cy="32" r="22" fill="url(#tireGr)" stroke="#86efac" stroke-width="1.5"/>
+        <circle cx="32" cy="32" r="13.5" fill="#e2e8f0" stroke="#1e293b" stroke-width="2.5"/>
+        <circle cx="32" cy="32" r="5" fill="#0f172a"/>
+        <path d="M32 19 L32 45 M19 32 L45 32" stroke="#475569" stroke-width="3"/>
+        <path d="M 16 18 A 20 20 0 0 1 40 12" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.65"/>
+      </svg>`,
+
+      // BLUE SPARK PLUG (Синяя 3D-свеча зажигания с электрическим разрядом)
+      spark: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <linearGradient id="spBlue" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#e0f2fe"/><stop offset="45%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0369a1"/>
+          </linearGradient>
+        </defs>
+        <g transform="rotate(32 32 32)">
+          <circle cx="32" cy="7" r="4" fill="#fef08a" stroke="#0284c7" stroke-width="1.5"/>
+          <rect x="24" y="10" width="16" height="18" rx="4" fill="url(#spBlue)" stroke="#0c4a6e" stroke-width="2"/>
+          <line x1="25" y1="16" x2="39" y2="16" stroke="#bae6fd" stroke-width="2"/>
+          <line x1="25" y1="21" x2="39" y2="21" stroke="#bae6fd" stroke-width="2"/>
+          <rect x="21" y="28" width="22" height="10" rx="3" fill="#60a5fa" stroke="#0c4a6e" stroke-width="2"/>
+          <rect x="25" y="38" width="14" height="13" rx="2" fill="#cbd5e1" stroke="#1e293b" stroke-width="2"/>
+          <line x1="26" y1="42" x2="38" y2="42" stroke="#475569" stroke-width="2"/>
+          <line x1="26" y1="46" x2="38" y2="46" stroke="#475569" stroke-width="2"/>
+          <circle cx="32" cy="55" r="4.5" fill="#38bdf8"/>
+          <circle cx="32" cy="55" r="2.2" fill="#ffffff"/>
+        </g>
+      </svg>`,
+
+      // PURPLE BATTERY (Фиолетовый 3D-аккумулятор с клеммами и молнией)
+      battery: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <linearGradient id="batPur" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#e9d5ff"/><stop offset="45%" stop-color="#a855f7"/><stop offset="100%" stop-color="#4c1d95"/>
+          </linearGradient>
+        </defs>
+        <rect x="17" y="8" width="9" height="8" rx="2" fill="#e2e8f0" stroke="#1e293b" stroke-width="2"/>
+        <rect x="38" y="8" width="9" height="8" rx="2" fill="#f87171" stroke="#7f1d1d" stroke-width="2"/>
+        <rect x="10" y="15" width="44" height="40" rx="8" fill="url(#batPur)" stroke="#2e1065" stroke-width="2.2"/>
+        <rect x="10" y="15" width="44" height="10" rx="5" fill="#c084fc" stroke="#2e1065" stroke-width="2"/>
+        <polygon points="34,26 24,38 32,38 28,50 41,35 33,35" fill="#fef08a" stroke="#78350f" stroke-width="1.5"/>
+        <path d="M15 28 L15 49" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+      </svg>`,
+
+      // AMORTIZER (Бустер Ракета — Сине-голубой 3D-амортизатор с витой пружиной)
+      rocket: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <linearGradient id="coilC" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#ffffff"/><stop offset="50%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#0284c7"/>
+          </linearGradient>
+        </defs>
+        <g transform="rotate(35 32 32)">
+          <circle cx="32" cy="8" r="6" fill="#cbd5e1" stroke="#0f172a" stroke-width="2"/>
+          <circle cx="32" cy="8" r="2.5" fill="#0f172a"/>
+          <rect x="27" y="13" width="10" height="38" rx="3" fill="#38bdf8" stroke="#0c4a6e" stroke-width="2"/>
+          <path d="M20 18 L44 23 M20 26 L44 31 M20 34 L44 39 M20 42 L44 47" stroke="url(#coilC)" stroke-width="5.5" stroke-linecap="round"/>
+          <circle cx="32" cy="56" r="6" fill="#cbd5e1" stroke="#0f172a" stroke-width="2"/>
+          <circle cx="32" cy="56" r="2.5" fill="#0f172a"/>
+        </g>
+      </svg>`,
+
+      // TURBO (Бустер Турбина — Хромированная улитка турбонаддува с золотой крыльчаткой)
+      turbo: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <radialGradient id="turSil" cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#ffffff"/><stop offset="50%" stop-color="#94a3b8"/><stop offset="100%" stop-color="#1e293b"/>
+          </radialGradient>
+        </defs>
+        <rect x="32" y="8" width="24" height="15" rx="5" fill="url(#turSil)" stroke="#facc15" stroke-width="2"/>
+        <circle cx="30" cy="34" r="23" fill="url(#turSil)" stroke="#facc15" stroke-width="2.5"/>
+        <circle cx="30" cy="34" r="13" fill="#0f172a" stroke="#fde047" stroke-width="2"/>
+        <path d="M30 21 L34 34 L30 47 L26 34 Z M17 34 L30 30 L43 34 L30 38 Z" fill="#facc15"/>
+        <circle cx="30" cy="34" r="4" fill="#ffffff"/>
+      </svg>`,
+
+      // NOS BOTTLE (Бустер Бомба — Синий баллон закиси азота с красным вентилем и пламенем)
+      nos: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <linearGradient id="nosB" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#60a5fa"/><stop offset="50%" stop-color="#2563eb"/><stop offset="100%" stop-color="#1e3a8a"/>
+          </linearGradient>
+        </defs>
+        <g transform="rotate(28 32 32)">
+          <circle cx="32" cy="7" r="5" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+          <rect x="28" y="12" width="8" height="6" fill="#cbd5e1" stroke="#1e293b" stroke-width="1.5"/>
+          <rect x="17" y="17" width="30" height="39" rx="11" fill="url(#nosB)" stroke="#93c5fd" stroke-width="2"/>
+          <rect x="20" y="29" width="24" height="14" rx="3" fill="#facc15" stroke="#7f1d1d" stroke-width="1.5"/>
+          <text x="32" y="39" font-size="10" font-weight="900" text-anchor="middle" fill="#dc2626">NOS</text>
+          <polygon points="24,56 32,64 40,56" fill="#f97316"/>
+        </g>
+      </svg>`,
+
+      // PLASMA COG (Радужная плазменная шестеренка)
+      plasma: `<svg viewBox="0 0 64 64" class="w-full h-full">
+        <defs>
+          <radialGradient id="plR">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="30%" stop-color="#fde047"/>
+            <stop offset="60%" stop-color="#ec4899"/>
+            <stop offset="85%" stop-color="#38bdf8"/>
+            <stop offset="100%" stop-color="#22c55e"/>
+          </radialGradient>
+        </defs>
+        <g stroke="#1e293b" stroke-width="2" fill="#cbd5e1">
+          <rect x="26" y="3" width="12" height="58" rx="3"/>
+          <rect x="26" y="3" width="12" height="58" rx="3" transform="rotate(45 32 32)"/>
+          <rect x="26" y="3" width="12" height="58" rx="3" transform="rotate(90 32 32)"/>
+          <rect x="26" y="3" width="12" height="58" rx="3" transform="rotate(135 32 32)"/>
+        </g>
+        <circle cx="32" cy="32" r="21" fill="url(#plR)" stroke="#ffffff" stroke-width="2.5"/>
+      </svg>`
+    };
+
+    // =========================================================================
+    // 8. ИГРОВОЙ ДВИЖОК MATCH-3 С ФИЗИКОЙ И КАСКАДАМИ
+    // =========================================================================
     let board = [];
     let selected = null;
     let isBusy = false;
@@ -893,6 +1641,7 @@
     let targets = { gear: 12, tire: 10 };
 
     function initGame() {
+      init3DGarage();
       loadGameProgress(() => {
         document.getElementById('target-icon-0').innerHTML = SVGS.gear;
         document.getElementById('target-icon-1').innerHTML = SVGS.tire;
@@ -927,6 +1676,23 @@
       }
     }
 
+    function getCellScreenCenter(r, c) {
+      const boardEl = document.getElementById('board');
+      if (!boardEl) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      const cellEl = boardEl.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+      if (!cellEl) return { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      const rect = cellEl.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    }
+
+    function shakeBoard() {
+      const wb = document.getElementById('workbench-box');
+      if (!wb) return;
+      wb.classList.remove('board-shake');
+      void wb.offsetWidth;
+      wb.classList.add('board-shake');
+    }
+
     function renderBoard() {
       const container = document.getElementById('board');
       if (!container) return;
@@ -948,8 +1714,7 @@
             if (item.obstacle === 'crate2') cell.classList.add('cell-crate-2');
 
             const tile = document.createElement('div');
-            const colorClass = item.booster ? 'tile-booster' : `tile-${item.type}`;
-            tile.className = `tile ${colorClass}`;
+            tile.className = `tile ${item.booster ? 'tile-booster' : ''}`;
             tile.dataset.r = r;
             tile.dataset.c = c;
 
@@ -970,19 +1735,15 @@
       }
     }
 
-    // УНИВЕРСАЛЬНОЕ УПРАВЛЕНИЕ ДЛЯ ТЕЛЕФОНА (TOUCH) И ПК (MOUSE)
+    // УНИВЕРСАЛЬНЫЙ ВВОД: TOUCH И МЫШЬ
     (function setupBoardInput() {
       const boardEl = document.getElementById('board');
       let dragStart = null;
       let swiped = false;
 
       const getCoords = (e) => {
-        if (e.touches && e.touches.length > 0) {
-          return { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        }
-        if (e.changedTouches && e.changedTouches.length > 0) {
-          return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
-        }
+        if (e.touches && e.touches.length > 0) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        if (e.changedTouches && e.changedTouches.length > 0) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
         return { x: e.clientX, y: e.clientY };
       };
 
@@ -1003,6 +1764,7 @@
         const pt = getCoords(e);
         dragStart = { r, c, x: pt.x, y: pt.y };
         swiped = false;
+        playSFX('click');
         tgHaptic('light');
       };
 
@@ -1013,7 +1775,7 @@
         const dx = pt.x - dragStart.x;
         const dy = pt.y - dragStart.y;
 
-        if (Math.hypot(dx, dy) > 14) {
+        if (Math.hypot(dx, dy) > 13) {
           swiped = true;
           let nr = dragStart.r;
           let nc = dragStart.c;
@@ -1031,7 +1793,7 @@
         }
       };
 
-      const endHandler = (e) => {
+      const endHandler = () => {
         if (!dragStart) return;
         const { r, c } = dragStart;
         dragStart = null;
@@ -1081,17 +1843,19 @@
       isBusy = true;
       swap(r1, c1, r2, c2);
       renderBoard();
-      await sleep(170);
+      await sleep(165);
 
       const A = board[r1][c1];
       const B = board[r2][c2];
 
       if (A?.booster && B?.booster) {
         moves--;
+        playSFX('boom');
         tgHaptic('success');
+        shakeBoard();
         updateUI();
         await triggerCombo(r1, c1, r2, c2, A.booster, B.booster);
-        await cascadeLoop();
+        await cascadeLoop(2);
         isBusy = false;
         checkWin();
         return;
@@ -1099,11 +1863,13 @@
 
       if (A?.booster === 'plasma' || B?.booster === 'plasma') {
         moves--;
+        playSFX('boom');
         tgHaptic('success');
+        shakeBoard();
         const plasmaPos = A?.booster === 'plasma' ? { r: r1, c: c1 } : { r: r2, c: c2 };
         const other = A?.booster === 'plasma' ? B : A;
         await activatePlasma(plasmaPos.r, plasmaPos.c, other?.type || randomType());
-        await cascadeLoop();
+        await cascadeLoop(2);
         isBusy = false;
         checkWin();
         return;
@@ -1111,10 +1877,12 @@
 
       if (A?.booster || B?.booster) {
         moves--;
+        playSFX('boom');
         tgHaptic('medium');
+        shakeBoard();
         if (A?.booster) await triggerBooster(r1, c1, A.booster, true);
         if (B?.booster) await triggerBooster(r2, c2, B.booster, true);
-        await cascadeLoop();
+        await cascadeLoop(2);
         isBusy = false;
         checkWin();
         return;
@@ -1122,7 +1890,6 @@
 
       const matches = findMatches(r2, c2);
       if (matches.matched.size === 0) {
-        // Возврат на место с анимацией тряски
         swap(r1, c1, r2, c2);
         if (board[r1][c1]) board[r1][c1].shake = true;
         if (board[r2][c2]) board[r2][c2].shake = true;
@@ -1133,10 +1900,11 @@
       }
 
       moves--;
+      playSFX('match', 1);
       tgHaptic('medium');
       updateUI();
       await resolveMatches(matches);
-      await cascadeLoop();
+      await cascadeLoop(2);
       isBusy = false;
       checkWin();
     }
@@ -1155,7 +1923,7 @@
           for (let c = 0; c < SIZE; c++) clearCell(r, c, true);
         }
       } else if (b1 === 'turbo' && b2 === 'turbo') {
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 4; i++) {
           const target = findGoalCell();
           if (target) clearCell(target.r, target.c, true);
         }
@@ -1175,7 +1943,7 @@
         }
       }
       renderBoard();
-      await sleep(280);
+      await sleep(250);
     }
 
     function findMatches(pivotR = null, pivotC = null) {
@@ -1217,7 +1985,6 @@
         }
       }
 
-      // Квадраты 2x2 -> бустер Турбо
       for (let r = 0; r < SIZE - 1; r++) {
         for (let c = 0; c < SIZE - 1; c++) {
           const t = board[r][c]?.type;
@@ -1279,7 +2046,12 @@
         const item = board[r][c];
         if (item) {
           if (item.obstacle) obstacleHits.add(`${r},${c}`);
-          else { collectItem(item.type); board[r][c] = null; }
+          else {
+            const pt = getCellScreenCenter(r, c);
+            spawnParticles(pt.x, pt.y, TILE_COLORS[item.type] || '#facc15', 10);
+            collectItem(item.type, pt.x, pt.y);
+            board[r][c] = null;
+          }
         }
       });
 
@@ -1297,16 +2069,16 @@
 
       updateUI();
       renderBoard();
-      await sleep(200);
+      await sleep(190);
     }
 
-    async function cascadeLoop() {
+    async function cascadeLoop(comboStep = 1) {
       while (true) {
         let moved = false;
         for (let c = 0; c < SIZE; c++) {
           for (let r = SIZE - 1; r > 0; r--) {
             if (!board[r][c] && board[r - 1][c] && !board[r - 1][c].obstacle) {
-              board[r][c] = board[r - 1][c];
+              board[r][c] = { ...board[r - 1][c], justSpawned: true };
               board[r - 1][c] = null;
               moved = true;
             }
@@ -1331,12 +2103,13 @@
 
         if (moved) {
           renderBoard();
-          await sleep(130);
+          await sleep(125);
           continue;
         }
 
         const nextMatches = findMatches();
         if (nextMatches.matched.size > 0) {
+          playSFX('match', comboStep++);
           await resolveMatches(nextMatches);
         } else {
           break;
@@ -1346,7 +2119,9 @@
 
     async function triggerBooster(r, c, booster, skipCascade = false) {
       isBusy = true;
+      playSFX('boom');
       tgHaptic('medium');
+      shakeBoard();
       board[r][c] = null;
 
       if (booster === 'rocket') {
@@ -1363,10 +2138,10 @@
 
       updateUI();
       renderBoard();
-      await sleep(220);
+      await sleep(210);
 
       if (!skipCascade) {
-        await cascadeLoop();
+        await cascadeLoop(2);
         isBusy = false;
         checkWin();
       }
@@ -1381,7 +2156,7 @@
       }
       updateUI();
       renderBoard();
-      await sleep(240);
+      await sleep(230);
     }
 
     function findGoalCell() {
@@ -1398,6 +2173,8 @@
       if (r < 0 || r >= SIZE || c < 0 || c >= SIZE) return;
       const item = board[r][c];
       if (!item) return;
+      const pt = getCellScreenCenter(r, c);
+      spawnParticles(pt.x, pt.y, TILE_COLORS[item.type] || '#38bdf8', 9);
       if (item.obstacle) {
         if (destroyObstacle) item.obstacle = null;
         else {
@@ -1406,17 +2183,24 @@
         }
         return;
       }
-      collectItem(item.type);
+      collectItem(item.type, pt.x, pt.y);
       board[r][c] = null;
     }
 
-    function collectItem(type) {
+    function collectItem(type, x, y) {
       coins += 2;
-      if (targets[type] !== undefined && targets[type] > 0) targets[type]--;
+      if (type === 'gear' && targets.gear > 0) {
+        targets.gear--;
+        if (x && y) spawnFlyingReward(x, y, SVGS.gear, 'goal-box-0');
+      } else if (type === 'tire' && targets.tire > 0) {
+        targets.tire--;
+        if (x && y) spawnFlyingReward(x, y, SVGS.tire, 'goal-box-1');
+      }
     }
 
     function activateTool(toolName) {
       if (tools[toolName] <= 0 || isBusy) return;
+      playSFX('click');
       tgHaptic('light');
       if (toolName === 'shuffle') {
         tools.shuffle--;
@@ -1435,7 +2219,9 @@
 
     async function useToolOn(r, c) {
       isBusy = true;
+      playSFX('boom');
       tgHaptic('medium');
+      shakeBoard();
       const tool = activeTool;
       activeTool = null;
       tools[tool]--;
@@ -1447,8 +2233,8 @@
 
       updateUI();
       renderBoard();
-      await sleep(220);
-      await cascadeLoop();
+      await sleep(200);
+      await cascadeLoop(2);
       isBusy = false;
       checkWin();
     }
@@ -1470,13 +2256,32 @@
       saveGameProgress();
     }
 
-    function checkWin() {
+    async function checkWin() {
       if (targets.gear === 0 && targets.tire === 0) {
+        isBusy = true;
+        // ФАЗА "СУПЕР-ФИНАЛ" В СТИЛЕ HOMESCAPES (Взрыв оставшихся ходов)
+        const bonusShots = Math.min(moves, 5);
+        if (bonusShots > 0) {
+          document.getElementById('status-banner').innerText = '🎉 СУПЕР-ФИНАЛ! БОНУС ЗА ХОДЫ!';
+          for (let i = 0; i < bonusShots; i++) {
+            moves--;
+            coins += 15;
+            const rr = Math.floor(Math.random() * SIZE);
+            const rc = Math.floor(Math.random() * SIZE);
+            const pt = getCellScreenCenter(rr, rc);
+            spawnParticles(pt.x, pt.y, '#facc15', 22);
+            playSFX('match', i + 2);
+            updateUI();
+            await sleep(160);
+          }
+        }
         stars += 1;
-        coins += 75;
+        coins += 100;
         currentLevel++;
+        playSFX('win');
         tgHaptic('success');
         updateUI();
+        isBusy = false;
         const modal = document.getElementById('win-modal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
@@ -1500,6 +2305,7 @@
       const modal = document.getElementById('win-modal');
       modal.classList.add('hidden');
       modal.classList.remove('flex');
+      document.getElementById('status-banner').innerText = 'Собирай 4 и 5 деталей для мощных 3D-бустеров!';
       moves = 24;
       targets = { gear: 12 + currentLevel * 2, tire: 10 + currentLevel * 2 };
       createBoard();
